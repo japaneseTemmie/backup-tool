@@ -15,6 +15,7 @@ Use `->` to point to a new directory
 Optionally, define new rules under others:
 
 `/path/to/my/source -> /path/to/my/destination`
+
 `/path/to/my/source2 -> /path/to/my/destination2`
 
 then:
