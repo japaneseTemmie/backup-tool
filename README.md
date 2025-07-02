@@ -1,5 +1,5 @@
 # Backup Tool
-Command line tool to copy all contents from a source directory to a destination directory using simple rulesets defined in a `rules.txt` (works on UNIX-like systems only).
+Command line tool to copy all contents from a source directory to a destination directory using simple rulesets defined in a `rules.txt` (tested on UNIX-like systems only).
 
 # Defining rules
 In a `rules.txt` file:
