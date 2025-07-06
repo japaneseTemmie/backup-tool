@@ -20,6 +20,6 @@ Optionally, define new rules under others:
 
 then:
 
-`python3 main.py`
+`python3 main.py` or `sudo python3 main.py` if a directory owned by root is defined in `rules.txt` for backup.
 
 ## The developer of this project is not responsible for data loss as a result of use or misuse of this program.
