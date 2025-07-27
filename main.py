@@ -3,11 +3,11 @@ from os import makedirs, listdir
 from shutil import copy2
 from time import sleep
 from sys import exit as sysexit
+from re import compile
 
 PATH = dirname(__file__)
 PATH_TO_RULES = join(PATH, "rules.txt")
-
-PATH_TO_BACKUP_KEY = "->"
+EXTENSION_PATTERN = compile(r"\[(\..+)?\]")
 
 def get_rules_content():
     with open(PATH_TO_RULES) as f:
@@ -16,59 +16,59 @@ def get_rules_content():
     for line in lines:
         yield line
 
-def remove_spaces_from_paths(iterable: list[str]):
-    new_iterable = []
-    for path in iterable:
-        new_iterable.append(path.strip())
+def split_backup_key(line: str) -> list[str, str, str | None]:
+    ext_match = EXTENSION_PATTERN.search(line.strip())
+    ext = ext_match.group(1) if ext_match else None
 
-    return new_iterable
+    line = EXTENSION_PATTERN.sub("", line)
 
-def split_backup_key(line: str):
-    return remove_spaces_from_paths(line.strip().split(PATH_TO_BACKUP_KEY))
+    src, dst = map(str.strip, line.split("->"))
 
-def add_paths_to_lists(paths: list[str], path_list: list, backup_paths: list):
-    if paths:
-        path = paths.pop(0)
-        backup_path = paths.pop(0)
+    return [src, dst, ext]
 
-        path_list.append(path)
-        backup_paths.append(backup_path)
-
-def get_rules():
-    paths, backup_paths = [], []
+def get_rules() -> tuple[list[str], list[str], list[str | None]]:
+    paths, backup_paths, extensions = [], [], []
 
     for line in get_rules_content():
-        split = split_backup_key(line)
+        src, dst, ext = split_backup_key(line)
 
-        if len(split) == 2:
-            add_paths_to_lists(split, paths, backup_paths)
+        paths.append(src)
+        backup_paths.append(dst)
+        extensions.append(ext)
 
-    return paths, backup_paths
+    return paths, backup_paths, extensions
 
-def get_files(path: str):
+def get_files(path: str, extension: str | None) -> list[str] | list:
+    stack = []
+    
     if exists(path):
         all_files = listdir(path)
     else:
         print(f"Directory {path} does not exist.")
-        return
-
-    stack = []
+        return stack
 
     for file in all_files:
         full_fp = join(path, file)
 
         if not isdir(full_fp):
-            stack.append(full_fp)
+            
+            if extension is None or full_fp.endswith(extension):
+                stack.append(full_fp)
         else:
-            other_files = get_files(full_fp)
+            other_files = get_files(full_fp, extension)
             if other_files:
                 stack.extend(other_files)
 
     return stack
 
-def copy_files(paths: list, backup_paths: list):
-    for path, backup_path in zip(paths, backup_paths):
-        all_files = get_files(path)
+def copy_files(paths: list[str], backup_paths: list[str], extensions: list[str | None]) -> None:
+    count = 0
+    while count < len(paths):
+        path = paths[count]
+        backup_path = backup_paths[count]
+        extension = extensions[count]
+
+        all_files = get_files(path, extension)
 
         for file in all_files:
             relative_path = relpath(file, path)
@@ -76,16 +76,18 @@ def copy_files(paths: list, backup_paths: list):
             folders = dirname(dest)
 
             try:
-                makedirs(folders, exist_ok=True)
-                print(f"Made directory at {folders}")
+                if not exists(folders):
+                    makedirs(folders, exist_ok=True)
+                    print(f"Made directory {folders}")
 
                 copy2(file, dest)
                 print(f"Copied file from {file} to {dest}")
             except OSError as e:
                 print(f"An error occured while copying file {file} to {dest}.\n{e}")
                 sysexit(0)
+        count += 1
 
-def check_input(string: str):
+def check_input(string: str) -> None:
     match string.lower():
         case "y":
             print("Proceeding..")
@@ -95,16 +97,16 @@ def check_input(string: str):
         case _:
             sysexit(0)
 
-def ask(prompt: str):
+def ask(prompt: str) -> None:
     output = input(prompt)
     check_input(output)
 
 def main() -> None:
-    paths, backup_paths = get_rules()
+    paths, backup_paths, extensions = get_rules()
     print(f"Will copy contents from {"\n".join(paths)} to {"\n".join(backup_paths)}")
     ask("Proceed? (y/N): ")
 
-    copy_files(paths, backup_paths)
+    copy_files(paths, backup_paths, extensions)
 
 if __name__ == "__main__":
     main()
