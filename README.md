@@ -19,6 +19,7 @@ Optionally, define new rules under others:
 `/path/to/my/source2 -> /path/to/my/destination2`
 
 Optionally, only move files with specified extension:
+
 `/path/to/my/source -> /path/to/my/destination [.png]`
 
 `/path/to/my/source2 -> /path/to/my/destination2`
