@@ -52,10 +52,16 @@ def copy_files(paths: list[str], backup_paths: list[str]) -> None:
         path = paths[count]
         backup_path = backup_paths[count]
 
-        folder = Folder(path)
-        copied_files, _ = folder.copy_to(backup_path)
+        try:
+            folder = Folder(path)
+            copied_files, _ = folder.copy_to(backup_path)
+        except OSError as e:
+            print(f"{Colors.RED}An error occured while copying.{Colors.RESET}\n{e}")
+            sleep(2)
 
-        print(f"Copied {len(copied_files)} files with {len(folder) - len(copied_files)} failures.")
+            continue
+
+        print(f"Copied {choice(all_colors)}{len(copied_files)} files{Colors.RESET} with {choice(all_colors)}{len(folder) - len(copied_files)} failures{Colors.RESET}.")
 
         count += 1
 

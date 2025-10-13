@@ -108,6 +108,7 @@ class Folder:
     Supports the following standard Python operations:
      
     bool(folder) -> returns True if there are any files or subfolders
+    
     iter(folder) -> returns an Iterator object that iterates over files in the folder. """
 
     def __init__(self, path: str, ensure_exists: bool=False):
