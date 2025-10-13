@@ -57,8 +57,6 @@ def copy_files(paths: list[str], backup_paths: list[str]) -> None:
             copied_files, _ = folder.copy_to(backup_path)
         except OSError as e:
             print(f"{Colors.RED}An error occured while copying.{Colors.RESET}\n{e}")
-            sleep(2)
-
             continue
 
         print(f"Copied {choice(all_colors)}{len(copied_files)} files{Colors.RESET} with {choice(all_colors)}{len(folder) - len(copied_files)} failures{Colors.RESET}.")
