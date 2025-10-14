@@ -70,10 +70,10 @@ def copy_files(paths: list[str], backup_paths: list[str]) -> None:
                 error_buf.write(f"Error occured at iteration {count}\n{e}")
             
             continue
+        finally:
+            count += 1
 
         print(f"Copied {choice(all_colors)}{len(copied_files)} files{Colors.RESET} from {choice(all_colors)}{folder.path}{Colors.RESET} to {choice(all_colors)}{backup_path}{Colors.RESET}.")
-
-        count += 1
 
 def check_input(string: str) -> None:
     match string.lower():
