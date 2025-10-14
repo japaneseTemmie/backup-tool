@@ -1,8 +1,10 @@
-from os.path import join, isfile, isdir, exists, basename
-from os import remove, rmdir, listdir, makedirs
+from os.path import join, isfile, isdir, exists, basename, dirname
+from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
 
-from typing import Generator, Union
+from re import compile, match
+
+from typing import Generator, Union, Optional
 from types import NoneType
 
 class File:
@@ -45,11 +47,18 @@ class File:
                 return f.read()
 
     def write(self, content: str) -> int:
-        """ Write `content` to file.
+        """ Write `content` to file, if it exists.
          
         Returns number of characters written. 
         
-        Raises standard OS exceptions. """
+        Raises
+
+        ```
+        OSError: Standard filesystem failure.
+        
+        RuntimeError: Missing file path.
+        ```
+        """
         
         if not isinstance(content, str):
             raise ValueError(f"Expected type str for argument content, not {content.__class__}")
@@ -58,10 +67,10 @@ class File:
             with open(self.path, "w") as f:
                 return f.write(content)
 
-        return 0
+        raise RuntimeError("File path is not set.")
 
     def delete(self) -> None:
-        """ Delete the file.
+        """ Delete the file if it exists.
          
         Raises standard OS exceptions. """
 
@@ -70,18 +79,20 @@ class File:
 
             self._refresh(None)
 
-    def copy_to(self, path: str) -> None:
+    def copy_to(self, path: str) -> str | None:
         """ Copy the file to a new location.
          
+        Returns new file's path or None.
+
         Raises standard OS exceptions. """
         
         if not isinstance(path, str):
             raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
         
         if self.path is not None:
-            copy2(self.path, path)
+            return copy2(self.path, path)
 
-    def move_to(self, path: str) -> None:
+    def move_to(self, path: str) -> str | None:
         """ Move file to a new location.
          
         Raises standard OS exceptions. """
@@ -89,9 +100,11 @@ class File:
         if not isinstance(path, str):
             raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
         
-        if self.path is not None:
+        if self.path is not None and exists(self.path):
             new_path = move(self.path, path)
             self._refresh(new_path)
+
+            return new_path
 
     def _refresh(self, path: str | None=None) -> None:
         if not isinstance(path, (str, NoneType)):
@@ -109,11 +122,14 @@ class Folder:
      
     bool(folder) -> returns True if there are any files or subfolders
     
-    iter(folder) -> returns an Iterator object that iterates over files in the folder. """
+    An empty `path` will create the folder object using the script's directory. Or CWD if __file__ is missing. """
 
-    def __init__(self, path: str, ensure_exists: bool=False):
+    def __init__(self, path: str="", ensure_exists: bool=False):
         if not isinstance(path, str):
             raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
+        
+        if not path:
+            path = dirname(__file__) if __file__ else getcwd()
         
         if not exists(path):
 
@@ -129,19 +145,13 @@ class Folder:
 
     def __bool__(self) -> bool:
         return len(listdir(self.path)) > 0
-    
-    def __len__(self) -> int:
-        count = 0
-
-        for _ in self:
-            count += 1
-
-        for subfolder in self.subfolders():
-            count += len(subfolder)
-
-        return count
 
     def __iter__(self) -> Generator[File, None, None]:
+        return self.files()
+
+    def files(self) -> Generator[File, None, None]:
+        """ Return a generator of file objects present in the directory. """
+        
         for file in listdir(self.path):
             full_fp = join(self.path, file)
             
@@ -149,6 +159,8 @@ class Folder:
                 yield File(full_fp)
 
     def subfolders(self) -> Generator["Folder", None, None]:
+        """ Return a generator object with subfolders present in the folder. """
+        
         for dir in listdir(self.path):
             full_fp = join(self.path, dir)
             
@@ -168,7 +180,7 @@ class Folder:
 
         if not isinstance(name, str):
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
-        elif not isinstance(name, (str, NoneType)):
+        elif not isinstance(content, (str, NoneType)):
             raise ValueError(f"Expected type str or NoneType for content argument, not {content.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a file name, not path")
@@ -183,6 +195,14 @@ class Folder:
             return file_path
         
     def delete_file(self, name: str) -> str | None:
+        """ Delete a file from the folder.
+         
+        `name` must be a file name.
+         
+        Returns the deleted file's path. 
+        
+        Raises standard OS exceptions. """
+        
         if not isinstance(name, str):
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
@@ -190,11 +210,22 @@ class Folder:
 
         if self.path is not None:
             file_path = join(self.path, name)
+            if isdir(file_path):
+                raise ValueError("name argument must point to a file, not directory")
+
             remove(file_path)
 
             return file_path
 
     def make_subfolder(self, name: str) -> str | None:
+        """ Create a subfolder in the folder.
+         
+        `name` must be a folder name.
+         
+        Returns the created folder's path.
+         
+        Raises standard OS exceptions. """
+        
         if not isinstance(name, str):
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
@@ -206,14 +237,26 @@ class Folder:
 
             return directory_path
 
-    def delete_subfolder(self, name: str) -> str | None:
+    def delete_subfolder(self, name: str) -> tuple[Optional[list[File]], Optional[list["Folder"]]] | None:
+        """ Delete a subfolder from the folder.
+         
+        `name` must be a folder name. 
+        
+        Returns deleted files and folders. 
+        
+        Raises standard OS exceptions. """
+        
         if not isinstance(name, str):
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
 
         if self.path is not None:
-            folder = Folder(join(self.path, name))
+            dir_path = join(self.path, name)
+            if isfile(dir_path):
+                raise ValueError("name argument must point to a directory, not file")
+
+            folder = Folder(dir_path)
 
             return folder.delete()
 
@@ -227,7 +270,7 @@ class Folder:
         if self.path is not None:
             deleted_files, deleted_subfolders = [], []
         
-            for file in self:
+            for file in self.files():
                 file.delete()
 
                 deleted_files.append(file)
@@ -258,7 +301,7 @@ class Folder:
 
             makedirs(path, exist_ok=True)
 
-            for file in self:
+            for file in self.files():
                 file.copy_to(join(path, file.name))
 
                 copied_files.append(file)
@@ -286,7 +329,7 @@ class Folder:
 
             makedirs(path, exist_ok=True)
             
-            for file in self:
+            for file in self.files():
                 file.move_to(join(path, file.name))
 
                 moved_files.append(file)
@@ -302,21 +345,27 @@ class Folder:
 
             return moved_files, moved_folders
 
-    def find(self, item: str) -> Union[File, "Folder"] | None:
+    def find(self, item: str, use_regex: bool=False) -> Union[File, "Folder"] | None:
         """ Find first occurrence of file or subfolder in the folder.
          
-        Returns a File or Folder object or None for no matches. """
+        Treat `item` as a regex pattern if `use_regex` is true.
+
+        Returns a File or Folder object or None for no matches.
+         
+        Raises standard OS or regex exceptions. """
 
         if not isinstance(item, str):
             raise ValueError(f"Expected type str for argument item, not {item.__class__}")
         
+        pattern = compile(item) if use_regex else None
+
         if self.path is not None:
-            for file in self:
-                if file.name == item:
+            for file in self.files():
+                if file.name == item if not pattern else match(pattern, file.name):
                     return file
                 
             for subfolder in self.subfolders():
-                if subfolder.name == item:
+                if subfolder.name == item if not pattern else match(pattern, subfolder.name):
                     return subfolder
                 
                 obj = subfolder.find(item)

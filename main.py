@@ -1,7 +1,7 @@
 from utils import Folder
 from colors import Colors, all_colors
 
-from os.path import dirname, join
+from os.path import dirname, join, exists
 from time import sleep
 from random import choice
 from sys import exit as sysexit
@@ -10,6 +10,10 @@ from re import compile
 PATH = dirname(__file__)
 PATH_TO_RULES = join(PATH, "rules.txt")
 EXTENSION_PATTERN = compile(r"\[(\..+)?\]")
+
+if not exists(PATH_TO_RULES):
+    print(f"Create a rules.txt file in {PATH} before usage.")
+    sysexit(1)
 
 def get_rules_content():
     with open(PATH_TO_RULES) as f:
@@ -47,6 +51,10 @@ def get_rules() -> tuple[list[str], list[str], list[str | None]]:
 
 def copy_files(paths: list[str], backup_paths: list[str]) -> None:
     count = 0
+    try:
+        error_buf = open("errors.txt", "w")
+    except OSError:
+        error_buf = None
 
     while count < len(paths):
         path = paths[count]
@@ -57,9 +65,13 @@ def copy_files(paths: list[str], backup_paths: list[str]) -> None:
             copied_files, _ = folder.copy_to(backup_path)
         except OSError as e:
             print(f"{Colors.RED}An error occured while copying.{Colors.RESET}\n{e}")
+
+            if error_buf:
+                error_buf.write(f"Error occured at iteration {count}\n{e}")
+            
             continue
 
-        print(f"Copied {choice(all_colors)}{len(copied_files)} files{Colors.RESET} with {choice(all_colors)}{len(folder) - len(copied_files)} failures{Colors.RESET}.")
+        print(f"Copied {choice(all_colors)}{len(copied_files)} files{Colors.RESET} from {choice(all_colors)}{folder.path}{Colors.RESET} to {choice(all_colors)}{backup_path}{Colors.RESET}.")
 
         count += 1
 
