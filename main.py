@@ -5,11 +5,9 @@ from os.path import dirname, join, exists
 from time import sleep
 from random import choice
 from sys import exit as sysexit
-from re import compile
 
 PATH = dirname(__file__)
 PATH_TO_RULES = join(PATH, "rules.txt")
-EXTENSION_PATTERN = compile(r"\[(\..+)?\]")
 
 if not exists(PATH_TO_RULES):
     print(f"Create a rules.txt file in {PATH} before usage.")
@@ -31,14 +29,12 @@ def get_src_dst_string(paths: list[str], backup_paths: list[str]) -> str:
     
     return string
 
-def split_backup_key(line: str) -> list[str, str, str | None]:
-    line = EXTENSION_PATTERN.sub("", line)
-
+def split_backup_key(line: str) -> list[str, str]:
     src, dst = map(str.strip, line.split("->"))
 
     return [src, dst]
 
-def get_rules() -> tuple[list[str], list[str], list[str | None]]:
+def get_rules() -> tuple[list[str], list[str]]:
     paths, backup_paths = [], []
 
     for line in get_rules_content():
@@ -51,6 +47,7 @@ def get_rules() -> tuple[list[str], list[str], list[str | None]]:
 
 def copy_files(paths: list[str], backup_paths: list[str]) -> None:
     count = 0
+
     try:
         error_buf = open("errors.txt", "w")
     except OSError:
@@ -63,17 +60,20 @@ def copy_files(paths: list[str], backup_paths: list[str]) -> None:
         try:
             folder = Folder(path)
             copied_files, _ = folder.copy_to(backup_path)
-        except OSError as e:
-            print(f"{Colors.RED}An error occured while copying.{Colors.RESET}\n{e}")
+        except (OSError, ValueError) as e:
+            print(f"{Colors.BRIGHT_RED}An error occurred while copying.{Colors.RESET}\n{e}")
 
             if error_buf:
-                error_buf.write(f"Error occured at iteration {count}\n{e}")
+                error_buf.write(f"Error occurred at iteration {count}\n{e}\n")
             
             continue
         finally:
             count += 1
 
         print(f"Copied {choice(all_colors)}{len(copied_files)} files{Colors.RESET} from {choice(all_colors)}{folder.path}{Colors.RESET} to {choice(all_colors)}{backup_path}{Colors.RESET}.")
+
+    if error_buf:
+        error_buf.close()
 
 def check_input(string: str) -> None:
     match string.lower():
