@@ -6,6 +6,8 @@ from time import sleep
 from random import choice
 from sys import exit as sysexit
 
+from typing import Generator, NoReturn
+
 PATH = dirname(__file__)
 PATH_TO_RULES = join(PATH, "rules.txt")
 SPLIT_KEY = "->"
@@ -18,13 +20,18 @@ if not exists(PATH_TO_RULES):
     print(f"Create a rules.txt file in {PATH} before usage.")
     sysexit(1)
 
-def get_rules_content():
-    with open(PATH_TO_RULES) as f:
-        lines = f.readlines()
+def get_rules_content() -> Generator[str, None, None] | NoReturn:
+    try:
+        with open(PATH_TO_RULES) as f:
+            for line in f:
+                if line.strip() and not line.startswith("#"):
+                    yield line
+    except OSError as e:
+        print(f"Failed to open rules file. Err: {e}")
+        if ERROR_BUF:
+            ERROR_BUF.write(f"An error occurred while reading rules file.\n{e}\n")
 
-    for line in lines:
-        if line.strip() and not line.startswith("#"):
-            yield line
+        sysexit(1)
 
 def get_src_dst_string(paths: list[str], backup_paths: list[str]) -> str:
     string = str()
@@ -34,9 +41,9 @@ def get_src_dst_string(paths: list[str], backup_paths: list[str]) -> str:
     
     return string
 
-def split_backup_key(line: str) -> list[str | None, str | None]:
+def split_backup_key(line: str) -> list[str, str] | None:
     if SPLIT_KEY not in line:
-        return [None, None]
+        return None
 
     src, dst = map(str.strip, line.split(SPLIT_KEY, 1))
 
@@ -46,13 +53,20 @@ def get_rules() -> tuple[list[str], list[str]]:
     paths, backup_paths = [], []
 
     for line in get_rules_content():
-        src, dst = split_backup_key(line)
+        result = split_backup_key(line)
 
-        if src is not None and dst is not None:
-            paths.append(src)
-            backup_paths.append(dst)
-        else:
+        if result is None:
             print(f"Ignoring invalid line {Colors.BRIGHT_RED}'{line}'{Colors.RESET}")
+            continue
+        
+        src, dst = result
+        
+        if not exists(src):
+            print(f"Skipping line {Colors.BRIGHT_RED}'{line}'{Colors.RESET} as source does not exist")
+            continue
+        
+        paths.append(src)
+        backup_paths.append(dst)
 
     return paths, backup_paths
 
@@ -73,8 +87,6 @@ def copy_files(paths: list[str], backup_paths: list[str]) -> list[str]:
 
             if ERROR_BUF:
                 ERROR_BUF.write(f"Error occurred while copying file {path} to {backup_path} at iteration {count}\n{e}\n")
-            
-            continue
         finally:
             count += 1
 
