@@ -1,6 +1,7 @@
 from os.path import join, isfile, isdir, exists, basename, dirname
 from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
+from hashlib import sha256
 
 from re import compile, match
 
@@ -355,7 +356,7 @@ class Folder:
         Raises standard OS or regex exceptions. """
 
         if not isinstance(item, str):
-            raise ValueError(f"Expected type str for argument item, not {item.__class__}")
+            raise ValueError(f"Expected type str for argument item, not {item.__class__.__name__}")
         
         pattern = compile(item) if use_regex else None
 
