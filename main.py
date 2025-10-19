@@ -51,10 +51,10 @@ def split_backup_key(line: str) -> list[str, str] | None:
 
     return [src, dst]
 
-def get_rules() -> tuple[list[str], list[str]]:
+def get_rules(error_buf: TextIOWrapper) -> tuple[list[str], list[str]]:
     paths, backup_paths = [], []
 
-    for line in get_rules_content():
+    for line in get_rules_content(error_buf):
         result = split_backup_key(line)
 
         if result is None:
@@ -80,7 +80,7 @@ def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrappe
     matches = []
     
     for file, other_file in zip(original, other):
-        
+        print(f"Verifying hash of {choice(all_colors)}{file.path}{Colors.RESET} with {choice(all_colors)}{other_file.path}{Colors.RESET}")
         try:
             file_hash = sha256(file.read("rb")).hexdigest()
             other_file_hash = sha256(other_file.read("rb")).hexdigest()
@@ -145,7 +145,7 @@ def main() -> None:
         print(f"{Colors.BRIGHT_RED}Can't open error buffer due to error.\n{e}")
         error_buf = None
     
-    paths, backup_paths = get_rules()
+    paths, backup_paths = get_rules(error_buf)
     print(f"Will copy and verify hash:\n{get_src_dst_string(paths, backup_paths)}")
     ask("Proceed? (y/N): ")
 
