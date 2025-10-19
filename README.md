@@ -1,6 +1,6 @@
 # Backup tool
 
-Command-line tool used to make copies of folders.
+Command-line tool to make copies of folders to specified directories. Useful for backups.
 
 # Usage
 
@@ -8,7 +8,9 @@ To use the tool, simply put your 'rules' in a `rules.txt` file.
 
 ```
 /path/to/my/source -> /path/to/my/destination
-/other/path/ -> /other/destination/ # add other rules
+/other/path/ -> /other/destination/
 ```
 
-Then `python3 main.py`. Remember to add `sudo` for root-protected files.
+Source paths must exist and be a folder. Single-file backups are not supported.
+
+Then `python3 main.py`. Add `sudo` for root-protected files.
