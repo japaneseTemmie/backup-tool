@@ -2,12 +2,11 @@ from pathutils import Folder, File
 from colors import Colors, all_colors
 
 from os.path import dirname, join, exists, isdir
-from hashlib import sha256
 from time import sleep
 from random import choice
 from sys import exit as sysexit
 
-from typing import Generator, NoReturn
+from typing import Generator
 from io import TextIOWrapper
 
 PATH = dirname(__file__)
@@ -18,7 +17,9 @@ if not exists(PATH_TO_RULES):
     print(f"Create a rules.txt file in {PATH} before usage.")
     sysexit(1)
 
-def get_rules_content(error_buf: TextIOWrapper) -> Generator[str, None, None] | NoReturn:
+def get_rules_content(error_buf: TextIOWrapper) -> Generator[str, None, None]:
+    """ Yield each line of the rules.txt file that doesn't begin with a '#'. """
+    
     try:
         with open(PATH_TO_RULES) as f:
             for line in f:
@@ -33,6 +34,8 @@ def get_rules_content(error_buf: TextIOWrapper) -> Generator[str, None, None] | 
         sysexit(1)
 
 def get_src_dst_string(paths: list[str], backup_paths: list[str]) -> str:
+    """ Return a string that points each path from `paths` to its corresponding backup path in `backup_paths`. """
+    
     string = str()
 
     for path, backup_path in zip(paths, backup_paths):
@@ -41,6 +44,8 @@ def get_src_dst_string(paths: list[str], backup_paths: list[str]) -> str:
     return string
 
 def split_backup_key(line: str) -> list[str, str] | None:
+    """ Get source and destination for each line in rules.txt """
+    
     if SPLIT_KEY not in line:
         return None
 
@@ -52,6 +57,8 @@ def split_backup_key(line: str) -> list[str, str] | None:
     return [src, dst]
 
 def get_rules(error_buf: TextIOWrapper) -> tuple[list[str], list[str]]:
+    """ Get source and destination paths. """
+    
     paths, backup_paths = [], []
 
     for line in get_rules_content(error_buf):
@@ -73,6 +80,8 @@ def get_rules(error_buf: TextIOWrapper) -> tuple[list[str], list[str]]:
     return paths, backup_paths
 
 def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrapper) -> bool:
+    """ Verify hash of copied files. """
+    
     if len(original) != len(other):
         print("Backup copy does not match item count")
         return False
@@ -82,11 +91,11 @@ def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrappe
     for file, other_file in zip(original, other):
         print(f"Verifying hash of {choice(all_colors)}{file.path}{Colors.RESET} with {choice(all_colors)}{other_file.path}{Colors.RESET}")
         try:
-            file_hash = sha256(file.read("rb")).hexdigest()
-            other_file_hash = sha256(other_file.read("rb")).hexdigest()
+            file_hash = file.hash()
+            other_file_hash = other_file.hash()
 
             matches.append(file_hash == other_file_hash)
-        except OSError as e:
+        except (OSError, ValueError) as e:
             print(f"{Colors.BRIGHT_RED}Failed to verify hash of {file.path} with {other_file.path}\nErr: {e}{Colors.RESET}")
 
             if error_buf:
@@ -94,7 +103,9 @@ def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrappe
 
     return all(matches)
 
-def copy_files(paths: list[str], backup_paths: list[str], error_buf: TextIOWrapper) -> list[tuple[list[File], list[File]]]:
+def copy_files(paths: list[str], backup_paths: list[str], error_buf: TextIOWrapper) -> tuple[list[File], list[File]]:
+    """ Copy specified files to their destination paths. """
+    
     count = 0
     original_files, destination_files = [], []
 
@@ -155,7 +166,9 @@ def main() -> None:
 
     hashes_match = verify_hash(original_files, destination_files, error_buf)
     if hashes_match:
-        print("Hashes match!")
+        print(f"{Colors.BRIGHT_GREEN}Hashes match!{Colors.RESET}")
+    else:
+        print(f"{Colors.BRIGHT_RED}Hashes don't match!{Colors.RESET}")
     
 if __name__ == "__main__":
     main()

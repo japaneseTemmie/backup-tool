@@ -1,6 +1,7 @@
 from os.path import join, isfile, isdir, exists, basename, dirname
 from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
+from hashlib import sha256
 
 from re import compile, match
 
@@ -38,7 +39,7 @@ class File:
     def read(self, mode: str="r") -> str | bytes:
         """ Read file contents.
          
-        Returns file contents or None if file doesn't exist.
+        Return file contents as string or bytes.
         
         `mode` must be either 'r' or 'rb'.
 
@@ -108,6 +109,27 @@ class File:
 
         new_path = move(self.path, path)
         self._refresh(new_path)
+
+    def hash(self) -> str:
+        """ Return a SHA256 hash of the file. 
+        
+        Raises standard OS / Hashlib exceptions. """
+
+        if self.path is None or not exists(self.path):
+            raise TypeError("File path must point to a valid location")
+
+        buf_size = 8192
+        file_hash = sha256()
+
+        with open(self.path, "rb") as f:
+            while True:
+                buf = f.read(buf_size)
+                if not buf:
+                    break
+
+                file_hash.update(buf)
+
+        return file_hash.hexdigest()
 
     def _refresh(self, path: str | None=None) -> None:
         if not isinstance(path, (str, NoneType)):
