@@ -1,7 +1,6 @@
 from os.path import join, isfile, isdir, exists, basename, dirname
 from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
-from hashlib import sha256
 
 from re import compile, match
 
@@ -53,19 +52,21 @@ class File:
         with open(self.path, mode) as f:
             return f.read()
 
-    def write(self, content: str) -> int:
-        """ Write `content` to file, if it exists.
+    def write(self, content: str | bytes) -> int:
+        """ Write `content` to file as string or bytes, if it exists.
          
         Returns number of characters written. 
         
         Raises standard OS exceptions. """
         
-        if not isinstance(content, str):
+        if not isinstance(content, (str, bytes)):
             raise ValueError(f"Expected type str for argument content, not {content.__class__}")
         elif self.path is None:
             raise TypeError("File path must point to a valid location")
+        
+        mode = "wb" if isinstance(content, bytes) else "w"
 
-        with open(self.path, "w") as f:
+        with open(self.path, mode) as f:
             return f.write(content)
 
     def delete(self) -> None:
