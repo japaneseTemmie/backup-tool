@@ -2,6 +2,7 @@ from pathutils import Folder, File
 from colors import Colors, all_colors
 
 from os.path import dirname, join, exists, isdir
+from os import sync
 from time import sleep
 from random import choice
 from sys import exit as sysexit
@@ -128,6 +129,11 @@ def copy_files(paths: list[str], backup_paths: list[str], error_buf: TextIOWrapp
                 error_buf.write(f"Error occurred while copying file {path} to {backup_path} at iteration {count}\n{e}\n")
         finally:
             count += 1
+
+    print("Syncing filesystem..")
+    sync()
+
+    print("done")
 
     return destination_files, original_files
 
