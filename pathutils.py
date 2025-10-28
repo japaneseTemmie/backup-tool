@@ -79,10 +79,10 @@ class File:
         remove(self.path)
         self._refresh(None)
 
-    def copy_to(self, path: str) -> str:
+    def copy_to(self, path: str) -> tuple["File", "File"]:
         """ Copy the file to a new location.
          
-        Returns new file's path.
+        Returns source file and new file.
 
         Raises standard OS exceptions. """
         
@@ -91,12 +91,14 @@ class File:
         elif not exists(self.path) or self.path is None:
             raise TypeError("File path must point to a valid location")
         
-        return copy2(self.path, path)
+        new_path = copy2(self.path, path)
 
-    def move_to(self, path: str) -> str:
+        return self, File(new_path)
+
+    def move_to(self, path: str) -> tuple["File", "File"]:
         """ Move file to a new location.
 
-        Return new file's path.
+        Return source file and new file.
          
         Raises standard OS exceptions. """
         
@@ -108,7 +110,7 @@ class File:
         new_path = move(self.path, path)
         self._refresh(new_path)
 
-        return new_path
+        return self, File(new_path)
 
     def _refresh(self, path: str | None=None) -> None:
         if not isinstance(path, (str, NoneType)):
@@ -134,7 +136,7 @@ class Folder:
             raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
         
         if not path:
-            path = dirname(__file__) if __file__ else getcwd()
+            path = dirname(__file__) if "__file__" in globals() else getcwd()
         
         if not exists(path):
 
@@ -172,14 +174,16 @@ class Folder:
             if isdir(full_fp):
                 yield Folder(full_fp)
 
-    def add_file(self, name: str, content: str | None=None) -> str:
+    def add_file(self, name: str, content: str | None=None) -> File:
         """ Add a file to the folder.
 
         `name` must be a file name only, not path.
          
-        Writes `content` to file if specified, too. 
+        Write `content` to file if specified, too. 
 
-        Returns new file's path or None.
+        If file already exists, return that file.
+
+        Returns new file.
         
         Raises standard OS exceptions. """
 
@@ -194,18 +198,16 @@ class Folder:
             
         file_path = join(self.path, name)
 
-        with open(file_path, "w") as f:
-            if content is not None:
-                f.write(content)
+        new_file = File(file_path, True)
+        if content is not None:
+            new_file.write(content)
 
-        return file_path
+        return new_file
         
-    def delete_file(self, name: str) -> str:
+    def delete_file(self, name: str) -> None:
         """ Delete a file from the folder.
          
-        `name` must be a file name.
-         
-        Returns the deleted file's path. 
+        `name` must be a file name only.
         
         Raises standard OS exceptions. """
         
@@ -220,16 +222,17 @@ class Folder:
         if isdir(file_path):
             raise ValueError("name argument must point to a file, not directory")
 
-        remove(file_path)
+        file = File(file_path)
+        file.delete()
 
         return file_path
 
-    def make_subfolder(self, name: str) -> str:
+    def make_subfolder(self, name: str) -> "Folder":
         """ Create a subfolder in the folder.
          
         `name` must be a folder name.
          
-        Returns the created folder's path.
+        Returns the created folder.
          
         Raises standard OS exceptions. """
         
@@ -241,9 +244,8 @@ class Folder:
             raise TypeError("Folder path must point to a valid location")
 
         directory_path = join(self.path, name)
-        makedirs(directory_path, exist_ok=True)
 
-        return directory_path
+        return Folder(directory_path, True)
 
     def delete_subfolder(self, name: str) -> list[File]:
         """ Delete a subfolder from the folder.
@@ -313,10 +315,10 @@ class Folder:
         makedirs(path, exist_ok=True)
 
         for file in self.files():
-            new_path = file.copy_to(join(path, file.name))
+            source_file, new_file = file.copy_to(join(path, file.name))
 
-            original_files.append(file)
-            destination_files.append(File(new_path))
+            original_files.append(source_file)
+            destination_files.append(new_file)
 
         for subfolder in self.subfolders():
             other_destination_files, other_original_files = subfolder.copy_to(join(path, subfolder.name))
@@ -343,10 +345,10 @@ class Folder:
         makedirs(path, exist_ok=True)
         
         for file in self.files():
-            new_path = file.move_to(join(path, file.name))
+            source_file, new_file = file.move_to(join(path, file.name))
 
-            moved_files.append(File(new_path))
-            original_files.append(file)
+            moved_files.append(new_file)
+            original_files.append(source_file)
 
         for subfolder in self.subfolders():
             other_moved_files, other_original_files = subfolder.move_to(join(path, subfolder.name))
@@ -383,32 +385,5 @@ class Folder:
             if subfolder.name == item if not pattern else match(pattern, subfolder.name):
                 return subfolder
             
-            obj = subfolder.find(item)
+            obj = subfolder.find(item, use_regex)
             if obj: return obj
-
-    def compare_hash(self, other: "Folder") -> bool:
-        """ Compare the hashes of all files in the `other` folder with the ones in this folder. 
-        
-        Raises standard OS or hashlib exceptions. """
-
-        if not isinstance(other, Folder):
-            raise ValueError(f"Expected Folder for argument other, not {other.__class__.__name__}")
-        elif (self.path is None or other.path is None) or (not exists(self.path) and not exists(other.path)):
-            raise TypeError("Folder path must point to a valid location")
-
-        my_files = sorted([f for f in self.files()], key=lambda f: f.name)
-        other_files = sorted([other_f for other_f in other.files()], key=lambda other_f: other_f.name)
-
-        if len(my_files) != len(other_files):
-            raise ValueError("Folders must have the same file count")
-
-        hashes = []
-
-        for file, other_file in zip(my_files, other_files):
-
-            file_hash = sha256(file.read("rb")).hexdigest()
-            other_file_hash = sha256(other_file.read("rb")).hexdigest()
-
-            hashes.append(file_hash == other_file_hash)
-
-        return all(hashes)
