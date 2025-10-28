@@ -216,7 +216,7 @@ class Folder:
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a file name, not path")
-        elif self.path is not None or not exists(self.path):
+        elif self.path is None or not exists(self.path):
             raise TypeError("Folder path must point to a valid location")
 
         file_path = join(self.path, name)
@@ -225,8 +225,6 @@ class Folder:
 
         file = File(file_path)
         file.delete()
-
-        return file_path
 
     def make_subfolder(self, name: str) -> "Folder":
         """ Create a subfolder in the folder.
