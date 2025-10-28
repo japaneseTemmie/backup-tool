@@ -96,10 +96,8 @@ class File:
 
         return self, File(new_path)
 
-    def move_to(self, path: str) -> "File":
+    def move_to(self, path: str) -> None:
         """ Move file to a new location.
-
-        Return moved file.
          
         Raises standard OS exceptions. """
         
@@ -110,8 +108,6 @@ class File:
 
         new_path = move(self.path, path)
         self._refresh(new_path)
-
-        return self
 
     def _refresh(self, path: str | None=None) -> None:
         if not isinstance(path, (str, NoneType)):
@@ -327,10 +323,10 @@ class Folder:
 
         return destination_files, original_files
 
-    def move_to(self, path: str) -> tuple[list[File], list[File]]:
+    def move_to(self, path: str) -> list[File]:
         """ Move the folder to a new location. 
         
-        Return a tuple with moved files and original files.
+        Return a tuple with moved files.
 
         Raises standard OS exceptions. """
 
@@ -339,26 +335,24 @@ class Folder:
         elif not exists(self.path) or self.path is None:
             raise TypeError("Folder path must point to a valid location")
         
-        moved_files, original_files = [], []
+        moved_files = []
 
         makedirs(path, exist_ok=True)
         
         for file in self.files():
-            moved_file = file.move_to(join(path, file.name))
+            file.move_to(join(path, file.name))
 
-            moved_files.append(moved_file)
-            original_files.append(file)
+            moved_files.append(file)
 
         for subfolder in self.subfolders():
-            other_moved_files, other_original_files = subfolder.move_to(join(path, subfolder.name))
+            other_moved_files = subfolder.move_to(join(path, subfolder.name))
 
             moved_files.extend(other_moved_files)
-            original_files.extend(other_original_files)
 
         if not listdir(self.path):
             rmdir(self.path)
 
-        return moved_files, original_files
+        return moved_files
 
     def find(self, item: str, use_regex: bool=False) -> Union[File, "Folder"] | None:
         """ Find first occurrence of file or subfolder in the folder.
