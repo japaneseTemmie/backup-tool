@@ -96,10 +96,10 @@ class File:
 
         return self, File(new_path)
 
-    def move_to(self, path: str) -> tuple["File", "File"]:
+    def move_to(self, path: str) -> "File":
         """ Move file to a new location.
 
-        Return source file and new file.
+        Return moved file.
          
         Raises standard OS exceptions. """
         
@@ -111,7 +111,7 @@ class File:
         new_path = move(self.path, path)
         self._refresh(new_path)
 
-        return self, File(new_path)
+        return self
 
     def _refresh(self, path: str | None=None) -> None:
         if not isinstance(path, (str, NoneType)):
@@ -346,10 +346,10 @@ class Folder:
         makedirs(path, exist_ok=True)
         
         for file in self.files():
-            source_file, new_file = file.move_to(join(path, file.name))
+            moved_file = file.move_to(join(path, file.name))
 
-            moved_files.append(new_file)
-            original_files.append(source_file)
+            moved_files.append(moved_file)
+            original_files.append(file)
 
         for subfolder in self.subfolders():
             other_moved_files, other_original_files = subfolder.move_to(join(path, subfolder.name))
