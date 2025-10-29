@@ -92,10 +92,7 @@ def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrappe
     for file, other_file in zip(original, other):
         print(f"Verifying hash of {choice(all_colors)}{file.path}{Colors.RESET} with {choice(all_colors)}{other_file.path}{Colors.RESET}")
         try:
-            file_hash = file.hash()
-            other_file_hash = other_file.hash()
-
-            matches.append(file_hash == other_file_hash)
+            matches.append(file.hash() == other_file.hash())
         except (OSError, ValueError) as e:
             print(f"{Colors.BRIGHT_RED}Failed to verify hash of {file.path} with {other_file.path}\nErr: {e}{Colors.RESET}")
 
