@@ -1,7 +1,7 @@
 from os.path import join, isfile, isdir, exists, basename, dirname
 from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
-from hashlib import sha256
+from hashlib import sha1, sha224, sha256, sha384, sha512
 
 from re import compile, match
 
@@ -56,7 +56,7 @@ class File:
     def write(self, content: str | bytes) -> int:
         """ Write `content` to file as string or bytes, if it exists.
          
-        Returns number of characters written. 
+        Returns number of characters or bytes written. 
         
         Raises standard OS exceptions. """
         
@@ -110,16 +110,28 @@ class File:
         new_path = move(self.path, path)
         self._refresh(new_path)
 
-    def hash(self) -> str:
-        """ Return a SHA256 hash of the file. 
+    def hash(self, hash_type: str="sha256") -> str:
+        """ Return a hash of the file.
+
+        `hash_type` must be `sha1`, `sha224`, `sha256`, `sha384` or `sha512`. Defaults to `sha256`
         
         Raises standard OS / Hashlib exceptions. """
 
+        valid_hash_types = {
+            "sha1": sha1,
+            "sha224": sha224,
+            "sha256": sha256,
+            "sha384": sha384,
+            "sha512": sha512
+        }
+
         if self.path is None or not exists(self.path):
             raise TypeError("File path must point to a valid location")
+        elif hash_type not in valid_hash_types:
+            raise ValueError(f"Invalid hash type.")
 
         buf_size = 8192
-        file_hash = sha256()
+        file_hash = valid_hash_types.get(hash_type, sha256)()
 
         with open(self.path, "rb") as f:
             while True:
@@ -148,14 +160,14 @@ class Folder:
     bool(Folder) -> returns True if there are any files or subfolders
     iter(Folder) -> returns an iterator of the folder's files.
     
-    An empty `path` will create the folder object using the script's directory. Or CWD if __file__ is missing. """
+    An empty `path` will create the folder in the CWD. """
 
     def __init__(self, path: str="", ensure_exists: bool=False) -> None:
         if not isinstance(path, str):
             raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
         
         if not path:
-            path = dirname(__file__) if "__file__" in globals() else getcwd()
+            path = getcwd()
         
         if not exists(path):
 
@@ -172,8 +184,14 @@ class Folder:
     def __bool__(self) -> bool:
         return len(listdir(self.path)) > 0
 
-    def __iter__(self) -> Generator[File, None, None]:
-        return self.files()
+    def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
+        for item in listdir(self.path):
+            full_fp = join(self.path, item)
+            
+            if isfile(full_fp):
+                yield File(full_fp)
+            elif isdir(full_fp):
+                yield Folder(full_fp)
 
     def files(self) -> Generator[File, None, None]:
         """ Return a generator of file objects present in the directory. """
@@ -269,7 +287,7 @@ class Folder:
          
         `name` must be a folder name. 
         
-        Returns deleted files. 
+        Return deleted files. 
         
         Raises standard OS exceptions. """
         
@@ -348,7 +366,7 @@ class Folder:
     def move_to(self, path: str) -> list[File]:
         """ Move the folder to a new location. 
         
-        Return a tuple with moved files.
+        Return moved files.
 
         Raises standard OS exceptions. """
 
