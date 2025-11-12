@@ -1,4 +1,4 @@
-from os.path import join, isfile, isdir, exists, basename, dirname
+from os.path import join, isfile, isdir, exists, basename
 from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
 from hashlib import sha1, sha224, sha256, sha384, sha512

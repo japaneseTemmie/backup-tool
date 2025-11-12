@@ -99,6 +99,8 @@ def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrappe
             if error_buf:
                 error_buf.write(f"An error occurred during hash verification.\n{e}\n")
 
+            matches.append(False)
+
     return all(matches)
 
 def copy_files(paths: list[str], backup_paths: list[str], error_buf: TextIOWrapper) -> tuple[list[File], list[File]]:
