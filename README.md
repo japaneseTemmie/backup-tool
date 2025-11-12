@@ -2,6 +2,8 @@
 
 Command-line tool to make copies of folders to specified directories. Useful for backups.
 
+Simply copies specified files to another destination and verifies their hash.
+
 # Usage
 
 To use the tool, simply put your 'rules' in a `rules.txt` file.
