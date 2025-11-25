@@ -52,9 +52,6 @@ def split_backup_key(line: str) -> list[str, str] | None:
 
     src, dst = map(str.strip, line.split(SPLIT_KEY, 1))
 
-    if not isdir(src):
-        return None
-
     return [src, dst]
 
 def get_rules(error_buf: TextIOWrapper) -> tuple[list[str], list[str]]:
@@ -71,8 +68,8 @@ def get_rules(error_buf: TextIOWrapper) -> tuple[list[str], list[str]]:
         
         src, dst = result
         
-        if not exists(src):
-            print(f"Skipping line {Colors.BRIGHT_RED}'{line}'{Colors.RESET} as source does not exist")
+        if not isdir(src):
+            print(f"Skipping line {Colors.BRIGHT_RED}'{line}'{Colors.RESET} as source does not exist or is not a directory.")
             continue
         
         paths.append(src)
@@ -99,20 +96,16 @@ def verify_hash(original: list[File], other: list[File], error_buf: TextIOWrappe
             if error_buf:
                 error_buf.write(f"An error occurred during hash verification.\n{e}\n")
 
-            matches.append(False)
+            return False
 
     return all(matches)
 
 def copy_files(paths: list[str], backup_paths: list[str], error_buf: TextIOWrapper) -> tuple[list[File], list[File]]:
     """ Copy specified files to their destination paths. """
-    
-    count = 0
+
     original_files, destination_files = [], []
 
-    while count < len(paths):
-        path = paths[count]
-        backup_path = backup_paths[count]
-
+    for path, backup_path in zip(paths, backup_paths):
         try:
             orig_folder = Folder(path)
             dst, src = orig_folder.copy_to(backup_path)
@@ -125,9 +118,7 @@ def copy_files(paths: list[str], backup_paths: list[str], error_buf: TextIOWrapp
             print(f"{Colors.BRIGHT_RED}An error occurred while copying.{Colors.RESET}\n{e}")
 
             if error_buf:
-                error_buf.write(f"Error occurred while copying file {path} to {backup_path} at iteration {count}\n{e}\n")
-        finally:
-            count += 1
+                error_buf.write(f"Error occurred while copying file {path} to {backup_path}\n{e}\n")
 
     print("Syncing filesystem..")
     sync()
@@ -162,10 +153,18 @@ def main() -> None:
         error_buf = None
     
     paths, backup_paths = get_rules(error_buf)
+    if not paths and not backup_paths:
+        print(f"{choice(all_colors)}No source / backup directories specified.{Colors.RESET}")
+        sysexit(1)
+
     print(f"Will copy and verify hash:\n{get_src_dst_string(paths, backup_paths)}")
     ask("Proceed? (y/N): ")
 
     destination_files, original_files = copy_files(paths, backup_paths, error_buf)
+    if not destination_files:
+        print(f"{choice(all_colors)}Failed to copy files.{Colors.RESET}")
+        sysexit(1)
+
     print("Verifying hashes...")
     sleep(0.5)
 
