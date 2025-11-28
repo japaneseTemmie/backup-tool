@@ -185,7 +185,7 @@ class Folder:
         return len(listdir(self.path)) > 0
 
     def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
-        for item in listdir(self.path):
+        for item in sorted(listdir(self.path)):
             full_fp = join(self.path, item)
             
             if isfile(full_fp):
@@ -196,7 +196,7 @@ class Folder:
     def files(self) -> Generator[File, None, None]:
         """ Return a generator of file objects present in the directory. """
         
-        for file in listdir(self.path):
+        for file in sorted(listdir(self.path)):
             full_fp = join(self.path, file)
             
             if isfile(full_fp):
@@ -205,7 +205,7 @@ class Folder:
     def subfolders(self) -> Generator["Folder", None, None]:
         """ Return a generator object with subfolders present in the folder. """
         
-        for dir in listdir(self.path):
+        for dir in sorted(listdir(self.path)):
             full_fp = join(self.path, dir)
             
             if isdir(full_fp):
