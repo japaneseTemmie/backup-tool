@@ -29,6 +29,7 @@ Example `rules.json`:
         }
     ]
 }
+```
 
 The `source` is the directory to recurse through.
 
