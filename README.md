@@ -37,13 +37,13 @@ The `destination` is the directory to copy data to.
 
 These two properties **must** exist in every rule.
 
-The `exclude` property defines what parts of the `source` directory to not copy. It can contain either one or two other properties.
+The `exclude` property defines what parts of the `source` directory to not copy. It can contain either one or two other properties:
 
-    - `files` is a list of file names to exclude from the backup.
+  - `files` is a list of file names to exclude from the backup.
 
-    - `directories` is a list of directory names to exclude from the backup.
+  - `directories` is a list of directory names to exclude from the backup.
 
-    Currently these properties does not support regular expressions.
+  Currently these properties does not support regular expressions.
 
 Then, run `python3 main.py`. Prefix the command with `sudo` for root-protected files.
 
