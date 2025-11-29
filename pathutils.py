@@ -5,7 +5,7 @@ from hashlib import sha1, sha224, sha256, sha384, sha512
 
 from re import compile, match
 
-from typing import Generator, Union
+from typing import Generator, Union, Optional
 from types import NoneType
 
 class File:
@@ -185,7 +185,8 @@ class Folder:
         return len(listdir(self.path)) > 0
 
     def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
-        for item in sorted(listdir(self.path)):
+        entries = sorted(listdir(self.path))
+        for item in entries:
             full_fp = join(self.path, item)
             
             if isfile(full_fp):
@@ -196,7 +197,8 @@ class Folder:
     def files(self) -> Generator[File, None, None]:
         """ Return a generator of file objects present in the directory. """
         
-        for file in sorted(listdir(self.path)):
+        entries = sorted(listdir(self.path))
+        for file in entries:
             full_fp = join(self.path, file)
             
             if isfile(full_fp):
@@ -205,7 +207,8 @@ class Folder:
     def subfolders(self) -> Generator["Folder", None, None]:
         """ Return a generator object with subfolders present in the folder. """
         
-        for dir in sorted(listdir(self.path)):
+        entries = sorted(listdir(self.path))
+        for dir in entries:
             full_fp = join(self.path, dir)
             
             if isdir(full_fp):
@@ -333,9 +336,11 @@ class Folder:
 
         return deleted_files
 
-    def copy_to(self, path: str) -> tuple[list[File], list[File]]:
+    def copy_to(self, path: str, exclude_files: list[Optional[str]]=None, exclude_directories: list[Optional[str]]=None) -> tuple[list[File], list[File]]:
         """ Copy the folder to a new location. 
         
+        Additionally, pass a list of strings (file or directory names) to exclude from copy.
+
         Return a tuple with destination files and original files.
 
         Raises standard OS exceptions. """
@@ -350,13 +355,19 @@ class Folder:
         makedirs(path, exist_ok=True)
 
         for file in self.files():
+            if isinstance(exclude_files, list) and file.name in exclude_files:
+                continue
+
             source_file, new_file = file.copy_to(join(path, file.name))
 
             original_files.append(source_file)
             destination_files.append(new_file)
 
         for subfolder in self.subfolders():
-            other_destination_files, other_original_files = subfolder.copy_to(join(path, subfolder.name))
+            if isinstance(exclude_directories, list) and subfolder.name in exclude_directories:
+                continue
+            
+            other_destination_files, other_original_files = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories)
         
             destination_files.extend(other_destination_files)
             original_files.extend(other_original_files)

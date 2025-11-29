@@ -8,15 +8,44 @@ Does not modify original data in any way.
 
 # Usage
 
-To use the tool, simply put your 'rules' in a `rules.txt` file.
+To use the tool, simply put your 'rules' in a `rules.json` file. Which must follow the JSON structure.
 
-```
-/path/to/my/source -> /path/to/my/destination
-/other/path/ -> /other/destination/
-```
+Example `rules.json`:
 
-Source paths must exist and be a folder. Single-file backups are not supported.
+```json
+{
+    "rules": [
+        {
+            "source": "/my/source/directory/",
+            "destination": "/my/destination/directory/",
+            "exclude": {
+                "files": ["badfile1", "badfile2"],
+                "directories": ["badfolder1"]
+            }
+        },
+        {
+            "source": "/my/other/source/directory/",
+            "destination": "/my/other/destination/directory/"
+        }
+    ]
+}
+
+The `source` is the directory to recurse through.
+
+The `destination` is the directory to copy data to.
+
+These two properties **must** exist in every rule.
+
+The `exclude` property defines what parts of the `source` directory to not copy. It can contain either one or two other properties.
+
+    - `files` is a list of file names to exclude from the backup.
+
+    - `directories` is a list of directory names to exclude from the backup.
+
+    Currently these properties does not support regular expressions.
+
+Then, run `python3 main.py`. Prefix the command with `sudo` for root-protected files.
+
+# Notes
 
 If copying to an external drive, ensure the connection to the drive is stable.
-
-Then `python3 main.py`. Prefix the command with `sudo` for root-protected files.
