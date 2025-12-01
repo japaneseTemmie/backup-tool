@@ -33,7 +33,7 @@ def main(args: Namespace) -> None:
         print(copied.msg)
         sysexit(1)
 
-    print(f"Successfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} files.")
+    print(f"Successfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} entries.")
     sleep(1)
 
     if not args.no_fs_sync:
