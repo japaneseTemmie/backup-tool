@@ -26,12 +26,10 @@ def main(args: Namespace) -> None:
     print(backup.get_src_dst_string())
     ask(f"{choice(all_colors)}Continue? (y/N){Colors.RESET}: ")
     
-    result = backup.copy_files()
-    if isinstance(result, Error):
-        print(result.msg)
+    copied = backup.copy_files()
+    if isinstance(copied, Error):
+        print(copied.msg)
         sysexit(1)
-
-    original, copied = result
 
     print(f"Successfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} files.")
     sleep(1)
@@ -48,7 +46,7 @@ def main(args: Namespace) -> None:
         print(f"{choice(all_colors)}Verifying hashes..{Colors.RESET}")
         sleep(2)
         
-        hashes_match = backup.verify_hashes(original, copied)
+        hashes_match = backup.verify_hashes(copied)
         if isinstance(hashes_match, Error):
             print(hashes_match.msg)
         elif hashes_match:

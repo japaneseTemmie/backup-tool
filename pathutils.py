@@ -336,12 +336,12 @@ class Folder:
 
         return deleted_files
 
-    def copy_to(self, path: str, exclude_files: list[Optional[str]]=None, exclude_directories: list[Optional[str]]=None) -> tuple[list[File], list[File]]:
+    def copy_to(self, path: str, exclude_files: list[Optional[str]]=None, exclude_directories: list[Optional[str]]=None) -> list[tuple[File, File]]:
         """ Copy the folder to a new location. 
         
         Additionally, pass a list of strings (file or directory names) to exclude from copy.
 
-        Return a tuple with destination files and original files.
+        Return a list of tuples with original file and destination file.
 
         Raises standard OS exceptions. """
         
@@ -350,7 +350,7 @@ class Folder:
         elif not exists(self.path) or self.path is None:
             raise TypeError("Folder path must point to a valid location")
 
-        destination_files, original_files = [], []
+        pairs = []
 
         makedirs(path, exist_ok=True)
 
@@ -359,20 +359,16 @@ class Folder:
                 continue
 
             source_file, new_file = file.copy_to(join(path, file.name))
-
-            original_files.append(source_file)
-            destination_files.append(new_file)
+            pairs.append((source_file, new_file))
 
         for subfolder in self.subfolders():
             if isinstance(exclude_directories, list) and subfolder.name in exclude_directories:
                 continue
             
-            other_destination_files, other_original_files = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories)
-        
-            destination_files.extend(other_destination_files)
-            original_files.extend(other_original_files)
+            other_pairs = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories)
+            pairs.extend(other_pairs)
 
-        return destination_files, original_files
+        return pairs
 
     def move_to(self, path: str) -> list[File]:
         """ Move the folder to a new location. 

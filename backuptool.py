@@ -36,11 +36,11 @@ class BackupTool:
 
         return string
 
-    def verify_hashes(self, original: list[File], copied: list[File]) -> bool | Error:
-        """ Compare each file's hash in `original` with the hash of each file in `copied`. """
+    def verify_hashes(self, pairs: list[tuple[File, File]]) -> bool | Error:
+        """ Verify each file's hash in `pairs`. """
         
         matches = []
-        for orig_file, copied_file in zip(original, copied):
+        for orig_file, copied_file in pairs:
             try:
                 matches.append(orig_file.hash() == copied_file.hash())
 
@@ -50,23 +50,22 @@ class BackupTool:
 
         return all(matches)
 
-    def copy_files(self) -> tuple[list[File], list[File]] | Error:
+    def copy_files(self) -> list[tuple[File, File]] | Error:
         """ Copy all files from source to destination as defined in rules.json 
         
         Return original and copied files. """
 
-        original, copied = [], []
+        pairs = []
 
         for rule in self.rules:
             try:
                 source_folder = Folder(rule.source)
-                dest, orig = source_folder.copy_to(rule.destination, rule.exclude_files, rule.exclude_directories)
+                pair = source_folder.copy_to(rule.destination, rule.exclude_files, rule.exclude_directories)
 
-                original.extend(orig)
-                copied.extend(dest)
+                pairs.extend(pair)
 
-                print(f"Copied {choice(all_colors)}{len(orig)}{Colors.RESET} files to {choice(all_colors)}{rule.destination}{Colors.RESET}")
+                print(f"Copied {choice(all_colors)}{len(pair)}{Colors.RESET} files to {choice(all_colors)}{rule.destination}{Colors.RESET}")
             except (OSError, ValueError) as e:
                 return Error(f"An error occured while copying source {choice(all_colors)}{rule.source}{Colors.RESET} to destination {choice(all_colors)}{rule.destination}{Colors.RESET}:\n{choice(all_colors)}{e}{Colors.RESET}")
             
-        return original, copied
+        return pairs
