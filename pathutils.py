@@ -285,12 +285,10 @@ class Folder:
 
         return Folder(directory_path, True)
 
-    def delete_subfolder(self, name: str) -> list[File]:
+    def delete_subfolder(self, name: str) -> None:
         """ Delete a subfolder from the folder.
          
         `name` must be a folder name. 
-        
-        Return deleted files. 
         
         Raises standard OS exceptions. """
         
@@ -306,35 +304,24 @@ class Folder:
             raise ValueError("name argument must point to a directory, not file")
 
         folder = Folder(dir_path)
+        folder.delete()
 
-        return folder.delete()
-
-    def delete(self) -> list[File]:
+    def delete(self) -> None:
         """ Recursively delete the folder. 
-        
-        Returns successfully deleted files.
 
         Raises standard OS exceptions. """
 
         if not exists(self.path) or self.path is None:
             raise TypeError("Folder path must point to a valid location")
-        
-        deleted_files = []
     
         for file in self.files():
             file.delete()
 
-            deleted_files.append(file)
-
         for subfolder in self.subfolders():
-            other_files = subfolder.delete()
-
-            deleted_files.extend(other_files)
+            subfolder.delete()
 
         if not listdir(self.path):
             rmdir(self.path)
-
-        return deleted_files
 
     def copy_to(self, path: str, exclude_files: list[Optional[str]]=None, exclude_directories: list[Optional[str]]=None) -> list[tuple[File, File]]:
         """ Copy the folder to a new location. 
