@@ -8,23 +8,25 @@ from os import sync
 from time import sleep
 from random import choice
 
-def ask(prompt: str) -> None:
-    answer = input(prompt)
+def ask(prompt: str) -> bool:
+    while True:
+        answer = input(prompt)
 
-    match answer.lower():
-        case "y":
-            print("Proceeding..")
+        if answer in {"y", "yes"}:
+            print(f"{choice(all_colors)}Proceeding...{Colors.RESET}")
             sleep(1)
-        case "n":
-            sysexit(0)
-        case _:
-            sysexit(0)
+
+            return True
+        elif answer in {"n", "no"}:
+            print(f"{Colors.BRIGHT_RED}Abort.{Colors.RESET}")
+            return False
 
 def main(args: Namespace) -> None:
     backup = BackupTool()
 
     print(backup.get_src_dst_string())
-    ask(f"{choice(all_colors)}Continue? (y/N){Colors.RESET}: ")
+    if not ask(f"{choice(all_colors)}Continue? (y/N){Colors.RESET}: "):
+        sysexit(0)
     
     copied = backup.copy_files()
     if isinstance(copied, Error):
