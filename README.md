@@ -47,6 +47,14 @@ The `exclude` property defines what parts of the `source` directory to not copy.
 
 Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected files.
 
+# CLI options
+You can modify program behaviour with these options:
+
+```
+--no-hash-verification          Disables hash verification.
+--no-fs-sync          Disables filesystem sync after copy.
+```
+
 # Notes
 
 If copying to an external drive, ensure the connection to the drive is stable.
