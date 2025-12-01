@@ -64,8 +64,8 @@ class BackupTool:
 
                 pairs.extend(pair)
 
-                print(f"Copied {choice(all_colors)}{len(pair)}{Colors.RESET} files to {choice(all_colors)}{rule.destination}{Colors.RESET}")
+                print(f"Copied {choice(all_colors)}{len(pair)}{Colors.RESET} entries to {choice(all_colors)}{rule.destination}{Colors.RESET}")
             except (OSError, ValueError) as e:
-                return Error(f"An error occured while copying source {choice(all_colors)}{rule.source}{Colors.RESET} to destination {choice(all_colors)}{rule.destination}{Colors.RESET}:\n{choice(all_colors)}{e}{Colors.RESET}")
+                return Error(f"An error occured while copying source {choice(all_colors)}{rule.source}{Colors.RESET} to destination {choice(all_colors)}{rule.destination}{Colors.RESET}:\n{Colors.BRIGHT_RED}{e}{Colors.RESET}")
             
         return pairs
