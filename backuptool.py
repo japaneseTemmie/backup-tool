@@ -3,8 +3,113 @@ from rulesparser import RulesParser
 from colors import Colors, all_colors
 from pathutils import File, Folder
 
+from typing import Optional, Generator, Union
+from os import makedirs, listdir
+from os.path import exists, join, isfile, isdir, basename
 from sys import exit as sysexit
 from random import choice
+
+class BackupFolder(Folder):
+    def __init__(self, path = "", ensure_exists = False):
+        super().__init__(path, ensure_exists)
+
+    def __bool__(self) -> bool:
+        return len(listdir(self.path)) > 0
+
+    def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
+        entries = sorted(listdir(self.path))
+        for item in entries:
+            full_fp = join(self.path, item)
+            
+            if isfile(full_fp):
+                yield File(full_fp)
+            elif isdir(full_fp):
+                yield BackupFolder(full_fp)
+
+    def subfolders(self) -> Generator["Folder", None, None]:
+        """ Return a generator object with subfolders present in the folder. """
+        
+        entries = sorted(listdir(self.path))
+        for dir in entries:
+            full_fp = join(self.path, dir)
+            
+            if isdir(full_fp):
+                yield BackupFolder(full_fp)
+
+    def make_subfolder(self, name: str) -> "Folder":
+        """ Create a subfolder in the folder.
+         
+        `name` must be a folder name.
+         
+        Returns the created folder.
+         
+        Raises standard OS exceptions. """
+        
+        if not isinstance(name, str):
+            raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
+        elif basename(name) != name:
+            raise ValueError(f"name argument must be a directory name, not path")
+        elif not exists(self.path) or self.path is None:
+            raise TypeError("Folder path must point to a valid location")
+
+        directory_path = join(self.path, name)
+
+        return BackupFolder(directory_path, True)
+
+    def delete_subfolder(self, name: str) -> None:
+        """ Delete a subfolder from the folder.
+         
+        `name` must be a folder name. 
+        
+        Raises standard OS exceptions. """
+        
+        if not isinstance(name, str):
+            raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
+        elif basename(name) != name:
+            raise ValueError(f"name argument must be a directory name, not path")
+        elif not exists(self.path) or self.path is None:
+            raise TypeError("Folder path must point to a valid location")
+
+        dir_path = join(self.path, name)
+        if isfile(dir_path):
+            raise ValueError("name argument must point to a directory, not file")
+
+        folder = BackupFolder(dir_path)
+        folder.delete()
+
+    def copy_to(self, path: str, exclude_files: list[Optional[str]]=None, exclude_directories: list[Optional[str]]=None) -> list[tuple[File, File]]:
+        """ Copy the folder to a new location. 
+        
+        Additionally, pass a list of strings (file or directory names) to exclude from copy.
+
+        Return a list of tuples with original file and destination file.
+
+        Raises standard OS exceptions. """
+        
+        if not isinstance(path, str):
+            raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
+        elif not exists(self.path) or self.path is None:
+            raise TypeError("Folder path must point to a valid location")
+
+        pairs = []
+
+        makedirs(path, exist_ok=True)
+
+        for file in self.files():
+            if isinstance(exclude_files, list) and file.name in exclude_files:
+                continue
+
+            source_file, new_file = file.copy_to(join(path, file.name))
+            pairs.append((source_file, new_file))
+
+        for subfolder in self.subfolders():
+            if isinstance(exclude_directories, list) and subfolder.name in exclude_directories:
+                continue
+            
+            other_pairs = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories)
+            pairs.extend(other_pairs)
+
+        return pairs
 
 class BackupTool:
     def __init__(self):
@@ -59,7 +164,7 @@ class BackupTool:
 
         for rule in self.rules:
             try:
-                source_folder = Folder(rule.source)
+                source_folder = BackupFolder(rule.source)
                 pair = source_folder.copy_to(rule.destination, rule.exclude_files, rule.exclude_directories)
 
                 pairs.extend(pair)
