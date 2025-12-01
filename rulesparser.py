@@ -2,7 +2,7 @@ from constants import RULES_JSON_PATH
 from error import Error
 from colors import Colors
 
-from os.path import exists
+from os.path import exists, isdir
 from json import load, JSONDecodeError
 from typing import Optional
 
@@ -29,11 +29,23 @@ class RulesParser:
             return Error(f"{Colors.BRIGHT_RED}Unable to open file due to error:\n{e}{Colors.RESET}")
         except JSONDecodeError as e:
             return Error(f"{Colors.BRIGHT_RED}Unable to parse JSON file due to error:\n{e}{Colors.RESET}")
+    
+    def check_destination(self, destination: str, i: int) -> str | Error:
+        """ Run several authenticity checks on `destination`. 
         
-    def check_source_and_destination(self, source: str, destination: str, i: int) -> tuple[str, str] | Error:
-        """ Run several authenticity checks on `source` and `destination` 
+        Return `destination` or `Error`. """
+
+        if not destination:
+            return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {i}{Colors.RESET}")
+        elif not isinstance(destination, str):
+            return Error(f"{Colors.BRIGHT_RED}Destination is defined as {type(destination)} at iteration {i}, expected string{Colors.RESET}")
         
-        Return `source` and `destination` or `Error` """
+        return destination
+
+    def check_source(self, source: str, i: int) -> str | Error:
+        """ Run several authenticity checks on `source`. 
+        
+        Return `source` or `Error`. """
         
         if not source:
             return Error(f"{Colors.BRIGHT_RED}Source is not defined at iteration {i}{Colors.RESET}")
@@ -41,10 +53,23 @@ class RulesParser:
             return Error(f"{Colors.BRIGHT_RED}Source is defined as {type(source)} at iteration {i}, expected string{Colors.RESET}")
         elif not exists(source):
             return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {i} does not exist in the filesystem{Colors.RESET}")
-        elif not destination:
-            return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {i}{Colors.RESET}")
-        elif not isinstance(destination, str):
-            return Error(f"{Colors.BRIGHT_RED}Destination is defined as {type(destination)} at iteration {i}, expected string{Colors.RESET}")
+        elif not isdir(source):
+            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {i} is not a directory")
+
+        return source
+
+    def check_source_and_destination(self, source: str, destination: str, i: int) -> tuple[str, str] | Error:
+        """ Run several authenticity checks on `source` and `destination`.
+        
+        Return `source` and `destination` or `Error`. """
+        
+        source = self.check_source(source, i)
+        if isinstance(source, Error):
+            return source
+        
+        destination = self.check_destination(destination, i)
+        if isinstance(destination, Error):
+            return destination
         
         return source, destination
     

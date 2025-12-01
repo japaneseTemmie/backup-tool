@@ -45,7 +45,7 @@ The `exclude` property defines what parts of the `source` directory to not copy.
 
   Currently these properties does not support regular expressions.
 
-Then, run `python3 main.py`. Prefix the command with `sudo` for root-protected files.
+Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected files.
 
 # Notes
 
