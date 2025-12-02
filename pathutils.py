@@ -174,7 +174,7 @@ class Folder:
      
     Supports the following standard Python operations:
      
-    bool(Folder) -> returns True if there are any files or subfolders inside the Folder.
+    bool(Folder) -> returns True if the folder exists in the filesystem.
     iter(Folder) -> returns an iterator of the folder's files and directories.
     
     An empty `path` will create the folder in the CWD. """
