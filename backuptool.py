@@ -14,7 +14,7 @@ class BackupFolder(Folder):
         super().__init__(path, ensure_exists)
 
     def __bool__(self) -> bool:
-        return len(listdir(self.path)) > 0
+        return self.path is not None and exists(self.path)
 
     def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
         entries = sorted(listdir(self.path))
