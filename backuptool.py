@@ -97,6 +97,7 @@ class BackupFolder(Folder):
 
         for file in self.files():
             if isinstance(exclude_files, list) and file.name in exclude_files:
+                print(f"Skipped file {choice(all_colors)}{file.path}{Colors.RESET}")
                 continue
 
             source_file, new_file = file.copy_to(join(path, file.name))
@@ -104,6 +105,7 @@ class BackupFolder(Folder):
 
         for subfolder in self.subfolders():
             if isinstance(exclude_directories, list) and subfolder.name in exclude_directories:
+                print(f"Skipped file {choice(all_colors)}{file.path}{Colors.RESET}")
                 continue
             
             other_pairs = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories)
