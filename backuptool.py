@@ -5,7 +5,7 @@ from pathutils import File, Folder
 
 from typing import Optional, Generator, Union
 from os import makedirs, listdir
-from os.path import exists, join, isfile, isdir, basename
+from os.path import join, isfile, isdir, basename
 from sys import exit as sysexit
 from random import choice
 
@@ -14,9 +14,12 @@ class BackupFolder(Folder):
         super().__init__(path, ensure_exists)
 
     def __bool__(self) -> bool:
-        return self.path is not None and exists(self.path)
+        return self.path is not None and isdir(self.path)
 
     def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
+        if self.path is None or not isdir(self.path):
+            raise ValueError("Folder path must point to a valid location")
+
         entries = sorted(listdir(self.path))
         for item in entries:
             full_fp = join(self.path, item)
@@ -28,6 +31,8 @@ class BackupFolder(Folder):
 
     def subfolders(self) -> Generator["Folder", None, None]:
         """ Return a generator object with subfolders present in the folder. """
+        if self.path is None or not isdir(self.path):
+            raise ValueError("Folder path must point to a valid location")
         
         entries = sorted(listdir(self.path))
         for dir in entries:
@@ -43,13 +48,13 @@ class BackupFolder(Folder):
          
         Returns the created folder.
          
-        Raises standard OS exceptions. """
+        Raises standard OS exceptions and additional ValueError and TypeError. """
         
         if not isinstance(name, str):
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
-        elif not exists(self.path) or self.path is None:
+        elif self.path is None or not isdir(self.path):
             raise TypeError("Folder path must point to a valid location")
 
         directory_path = join(self.path, name)
@@ -61,13 +66,13 @@ class BackupFolder(Folder):
          
         `name` must be a folder name. 
         
-        Raises standard OS exceptions. """
+        Raises standard OS exceptions and additional ValueError and TypeError. """
         
         if not isinstance(name, str):
             raise ValueError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
-        elif not exists(self.path) or self.path is None:
+        elif self.path is None or not isdir(self.path):
             raise TypeError("Folder path must point to a valid location")
 
         dir_path = join(self.path, name)
@@ -84,11 +89,11 @@ class BackupFolder(Folder):
 
         Return a list of tuples with original file and destination file.
 
-        Raises standard OS exceptions. """
+        Raises standard OS exceptions and additional ValueError and TypeError. """
         
         if not isinstance(path, str):
             raise ValueError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif not exists(self.path) or self.path is None:
+        elif self.path is None or not isdir(self.path):
             raise TypeError("Folder path must point to a valid location")
 
         pairs = []
