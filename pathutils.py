@@ -128,6 +128,28 @@ class File:
         with open(self.path, "w", encoding=encoding) as f:
             return f.write(content)
 
+    def find(self, item: str | Pattern) -> list[str]:
+        """ Find first occurrence of item in each line in the file.
+         
+        `item` can either be a string to compare a line to, or a `re.Pattern` object to match to a line.
+
+        Return a list of string matches.
+         
+        Raises standard OS and regex exceptions and additional ValueError. """
+        
+        matches = []
+        is_regex = isinstance(item, Pattern)
+        
+        for line in self:
+            if not is_regex:
+                if line == item:
+                    matches.append(line)
+            else:
+                if item.match(line):
+                    matches.append(line)
+        
+        return matches
+
     def delete(self) -> None:
         """ Delete the file if it exists.
 
@@ -407,6 +429,8 @@ class Folder:
 
     def delete(self) -> None:
         """ Recursively delete the folder.
+
+        After this operation, this folder's attributes become `None`. Effectively rendering the object useless.
 
         Raises standard OS exceptions and additional TypeError. """
 
