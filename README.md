@@ -31,9 +31,9 @@ Example `rules.json`:
 }
 ```
 
-The `source` is the directory to recurse through.
+The `source` is the directory to recurse through. Single files are not supported.
 
-The `destination` is the directory to copy data to.
+The `destination` is the directory to copy data to. **Will overwrite anything existing at destination**.
 
 These two properties **must** exist in every rule.
 
@@ -43,7 +43,7 @@ The `exclude` property defines what parts of the `source` directory to not copy.
 
   - `directories` is a list of directory names to exclude from the backup.
 
-  Currently these properties does not support regular expressions.
+  Currently these properties does not support regular expressions. Additionally, these are **global** exclusions, and will be accounted for at every copy iteration.
 
 Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected files.
 
