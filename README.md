@@ -57,4 +57,6 @@ You can modify program behaviour with these options:
 
 # Notes
 
-If copying to an external drive, ensure the connection to the drive is stable.
+- If copying to an external drive, ensure the connection to the drive is stable.
+
+- Symlinked files are handled by _only copying the file contents and metadata_ to the destination. 
