@@ -25,7 +25,11 @@ Example `rules.json`:
         },
         {
             "source": "/my/other/source/directory/",
-            "destination": "/my/other/destination/directory/"
+            "destination": "/my/other/destination/directory/",
+            "exclude": {
+                "files": [".*\\.log"],
+                "use_regex": true
+            }
         }
     ]
 }
@@ -33,17 +37,19 @@ Example `rules.json`:
 
 The `source` is the directory to recurse through. Single files are not supported.
 
-The `destination` is the directory to copy data to. **Will overwrite anything existing at destination**.
+The `destination` is the directory to copy data to. **Will overwrite existing files with the same name at destination**.
 
 These two properties **must** exist in every rule.
 
-The `exclude` property defines what parts of the `source` directory to not copy. It can contain either one or two other properties:
+The `exclude` property defines what parts of the `source` directory to not copy to `destination`. It can contain either one or two other core properties:
 
   - `files` is a list of file names to exclude from the backup.
 
   - `directories` is a list of directory names to exclude from the backup.
 
-  Currently these properties does not support regular expressions. Additionally, these are **global** exclusions, and will be accounted for at every copy iteration.
+  [Optional] - `use_regex` is a boolean telling the script whether or not to treat the strings in `files` and `directories` as regular expressions. Each expression is matched against the full file/directory name.
+
+  Additionally, these are **global**, **name-based** exclusions, and will be accounted for at every copy iteration.
 
 Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected files.
 
@@ -51,8 +57,9 @@ Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected
 You can modify program behaviour with these options:
 
 ```
---no-hash-verification          Disables hash verification.
---no-fs-sync          Disables filesystem sync after copy.
+--no-hash-verification     Disables hash verification.
+--no-fs-sync               Disables filesystem sync after copy.
+--dry-run                  Runs the script but without actually copying files.
 ```
 
 # Notes

@@ -4,10 +4,10 @@ from colors import Colors
 
 from os.path import exists, isdir
 from json import load, JSONDecodeError
-from typing import Optional
+from re import Pattern, compile
 
 class Rule:
-    def __init__(self, source: str, destination: str, exclude_files: list[str] | None, exclude_directories: list[str]):
+    def __init__(self, source: str, destination: str, exclude_files: list[str | Pattern] | None, exclude_directories: list[str | Pattern]):
         self.source = source
         self.destination = destination
         self.exclude_files = exclude_files
@@ -30,70 +30,95 @@ class RulesParser:
         except JSONDecodeError as e:
             return Error(f"{Colors.BRIGHT_RED}Unable to parse JSON file due to error:\n{e}{Colors.RESET}")
     
-    def check_destination(self, destination: str, i: int) -> str | Error:
+    def check_destination(self, destination: str, iteration_count: int) -> str | Error:
         """ Run several authenticity checks on `destination`. 
         
         Return `destination` or `Error`. """
 
         if not destination:
-            return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {i}{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isinstance(destination, str):
-            return Error(f"{Colors.BRIGHT_RED}Destination is defined as {type(destination)} at iteration {i}, expected string{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Destination is defined as {type(destination)} at iteration {iteration_count}, expected string{Colors.RESET}")
         
         return destination
 
-    def check_source(self, source: str, i: int) -> str | Error:
+    def check_source(self, source: str, iteration_count: int) -> str | Error:
         """ Run several authenticity checks on `source`. 
         
         Return `source` or `Error`. """
         
         if not source:
-            return Error(f"{Colors.BRIGHT_RED}Source is not defined at iteration {i}{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Source is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isinstance(source, str):
-            return Error(f"{Colors.BRIGHT_RED}Source is defined as {type(source)} at iteration {i}, expected string{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Source is defined as {type(source)} at iteration {iteration_count}, expected string{Colors.RESET}")
         elif not exists(source):
-            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {i} does not exist in the filesystem{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {iteration_count} does not exist in the filesystem{Colors.RESET}")
         elif not isdir(source):
-            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {i} is not a directory")
+            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {iteration_count} is not a directory")
 
         return source
 
-    def check_source_and_destination(self, source: str, destination: str, i: int) -> tuple[str, str] | Error:
+    def check_source_and_destination(self, source: str, destination: str, iteration_count: int) -> tuple[str, str] | Error:
         """ Run several authenticity checks on `source` and `destination`.
         
         Return `source` and `destination` or `Error`. """
         
-        source = self.check_source(source, i)
+        source = self.check_source(source, iteration_count)
         if isinstance(source, Error):
             return source
         
-        destination = self.check_destination(destination, i)
+        destination = self.check_destination(destination, iteration_count)
         if isinstance(destination, Error):
             return destination
         
         return source, destination
     
-    def check_exclude(self, exclude: dict, i: int) -> tuple[list[Optional[str]], list[Optional[str]]] | Error:
+    def check_exclude_list(self, exclude_list: list[str] | None, regex: bool, iteration_count: int) -> list[str | Pattern] | list | Error:
+        """ Run authenticity checks on `exclude_list` """
+        
+        if exclude_list is None:
+            return []
+        
+        if exclude_list is not None and (not isinstance(exclude_list, list) or not all(isinstance(item, str) for item in exclude_list)):
+            return Error(f"{Colors.BRIGHT_RED}Exclude files is defined as {type(exclude_list)} at iteration {iteration_count}, expected list of strings.{Colors.RESET}")
+        
+        if regex:
+            try:
+                exclude_list = [compile(exclude_rule) for exclude_rule in exclude_list]
+            except Exception as e:
+                return Error(f"{Colors.BRIGHT_RED}An error occured while compiling a regular expression at iteration {iteration_count}\nErr: {e}")
+    
+        return exclude_list
+
+    def check_exclude(self, exclude: dict, iteration_count: int) -> tuple[list[str | Pattern] | list, list[str | Pattern] | list] | Error:
         """ Run authenticity checks on `exclude`
         
         Return `exclude_files` and `exclude_directories` or `Error` """
-        
+
         exclude_files, exclude_directories = [], []
 
         if exclude is not None:
-            if not exclude:
-                return Error(f"{Colors.BRIGHT_RED}Exclude is defined but with no content at iteration {i}{Colors.RESET}")
+            if "files" not in exclude and "directories" not in exclude:
+                return Error(f"{Colors.BRIGHT_RED}Exclude is defined but with no content at iteration {iteration_count}{Colors.RESET}")
             elif not isinstance(exclude, dict):
-                return Error(f"{Colors.BRIGHT_RED}Exclude is defined as {type(exclude)} at iteration {i}, expected dictionary{Colors.RESET}")
+                return Error(f"{Colors.BRIGHT_RED}Exclude is defined as {type(exclude)} at iteration {iteration_count}, expected dictionary{Colors.RESET}")
         
-            exclude_files = exclude.get("files")
-            exclude_directories = exclude.get("directories")
+            regex = exclude.get("use_regex", False)
+            if not isinstance(regex, bool):
+                return Error(f"{Colors.BRIGHT_RED}Regex usage defined as {type(regex)} at iteration {iteration_count}, expected boolean")
 
-            if exclude_files is not None and not isinstance(exclude_files, list):
-                return Error(f"{Colors.BRIGHT_RED}Exclude files is defined as {type(exclude_files)} at iteration {i}, expected list of strings.{Colors.RESET}")
-            elif exclude_directories is not None and not isinstance(exclude_directories, list):
-                return Error(f"{Colors.BRIGHT_RED}Exclude directories is defined as {type(exclude_directories)} at iteration {i}, expected list of strings.{Colors.RESET}")
+            exclude_files = exclude.get("files", [])
+            if exclude_files is not None:
+                exclude_files = self.check_exclude_list(exclude_files, regex, iteration_count)
+                if isinstance(exclude_files, Error):
+                    return exclude_files
             
+            exclude_directories = exclude.get("directories", [])
+            if exclude_directories is not None:
+                exclude_directories = self.check_exclude_list(exclude_directories, regex, iteration_count)
+                if isinstance(exclude_directories, Error):
+                    return exclude_directories
+
         return exclude_files, exclude_directories
 
     def parse_rules(self, content: dict[str, list[dict[str, str]]]) -> list[Rule] | Error:

@@ -22,7 +22,10 @@ def ask(prompt: str) -> bool:
             return False
 
 def main(args: Namespace) -> None:
-    backup = BackupTool()
+    backup = BackupTool(args.dry_run)
+
+    if args.dry_run:
+        print(f"{choice(all_colors)}DRY RUN{Colors.RESET}")
 
     print(backup.get_src_dst_string())
     if not ask(f"{choice(all_colors)}Continue? (y/N){Colors.RESET}: "):
@@ -36,7 +39,7 @@ def main(args: Namespace) -> None:
     print(f"Successfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} entries.")
     sleep(1)
 
-    if not args.no_fs_sync:
+    if not args.no_fs_sync and not args.dry_run:
         print(f"{choice(all_colors)}Syncing filesystem..{Colors.RESET}")
         try:
             sync()
@@ -44,7 +47,7 @@ def main(args: Namespace) -> None:
             print(f"Syncing filesystem failed. Cannot proceed with hash verification. Your copy may not be fully written.\nErr: {e}")
             sysexit(1)
 
-    if not args.no_hash_verification:
+    if not args.no_hash_verification and not args.dry_run:
         print(f"{choice(all_colors)}Verifying hashes..{Colors.RESET}")
         sleep(2)
         
@@ -62,6 +65,7 @@ if __name__ == "__main__":
     argparser = ArgumentParser()
     argparser.add_argument("--no-hash-verification", action="store_true")
     argparser.add_argument("--no-fs-sync", action="store_true")
+    argparser.add_argument("--dry-run", action="store_true")
     args = argparser.parse_args()
 
     main(args)
