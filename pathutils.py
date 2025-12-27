@@ -63,7 +63,7 @@ class File:
          
         Return file contents as bytes.
 
-        `bufsize` must be either -1 (read whole file) or an integer counting the number of characters to read.
+        `bufsize` must be either -1 (read whole file) or an integer counting the number of bytes to read.
 
         Raises standard OS exceptions and additional TypeError or ValueError. """
 
@@ -104,7 +104,7 @@ class File:
         Raises standard OS exceptions and additional ValueError or TypeError. """
         
         if not isinstance(content, bytes):
-            raise ValueError(f"Expected type str for argument content, not {content.__class__}")
+            raise ValueError(f"Expected type bytes for argument content, not {content.__class__}")
         elif self.path is None:
             raise TypeError("File path must point to a valid location")
 
