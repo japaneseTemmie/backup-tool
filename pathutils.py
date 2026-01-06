@@ -514,6 +514,8 @@ class Folder:
     def move_to(self, path: str) -> list[File]:
         """ Move the folder's contents to a new location. 
         
+        After this operation, the current object's path is refreshed to the new given path.
+
         Return moved files.
 
         Raises standard OS exceptions and additional ValueError or TypeError. """
