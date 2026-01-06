@@ -538,7 +538,7 @@ class Folder:
         if not listdir(self.path):
             rmdir(self.path)
 
-        self.__path = None
+        self.__path = path
 
         return moved_files
 
