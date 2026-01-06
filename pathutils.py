@@ -40,13 +40,13 @@ class File:
         self.__path = path
 
     def __bool__(self) -> bool:
-        return self.path is not None and isfile(self.path)
+        return self.__path is not None and isfile(self.__path)
 
     def __iter__(self) -> Generator[str, None, None]:
-        if self.path is None or not isfile(self.path):
+        if self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
 
-        with open(self.path) as f:
+        with open(self.__path) as f:
             for line in f:
                 yield line
 
@@ -117,12 +117,12 @@ class File:
 
         Raises standard OS exceptions and additional TypeError or ValueError. """
 
-        if self.path is None or not isfile(self.path):
+        if self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
         elif not isinstance(bufsize, int):
             raise TypeError(f"Expected type int for argument bufsize, not {bufsize.__class__.__name__}")
         
-        with open(self.path, "rb") as f:
+        with open(self.__path, "rb") as f:
             return f.read(bufsize)
 
     def read_text(self, bufsize: int=-1, encoding: str="utf-8") -> str:
@@ -136,14 +136,14 @@ class File:
 
         Raises standard OS exceptions and additional TypeError or ValueError. """
 
-        if self.path is None or not isfile(self.path):
+        if self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
         elif not isinstance(bufsize, int):
             raise TypeError(f"Expected type int for argument bufsize, not {bufsize.__class__.__name__}")
         elif not isinstance(encoding, str):
             raise TypeError(f"Expected type str for argument encoding, not {encoding.__class__.__name__}")
 
-        with open(self.path, "r", encoding=encoding) as f:
+        with open(self.__path, "r", encoding=encoding) as f:
             return f.read(bufsize)
 
     def write_bytes(self, content: bytes) -> int:
@@ -155,10 +155,10 @@ class File:
         
         if not isinstance(content, bytes):
             raise TypeError(f"Expected type bytes for argument content, not {content.__class__}")
-        elif self.path is None:
+        elif self.__path is None:
             raise ValueError("File path must point to a valid location")
 
-        with open(self.path, "wb") as f:
+        with open(self.__path, "wb") as f:
             return f.write(content)
         
     def write_text(self, content: str, encoding: str="utf-8") -> int:
@@ -172,16 +172,18 @@ class File:
             raise TypeError(f"Expected type str for argument content, not {content.__class__}")
         elif not isinstance(encoding, str):
             raise TypeError(f"Expected type str for argument encoding, not {encoding.__class__.__name__}")
-        elif self.path is None:
+        elif self.__path is None:
             raise ValueError("File path must point to a valid location")
 
-        with open(self.path, "w", encoding=encoding) as f:
+        with open(self.__path, "w", encoding=encoding) as f:
             return f.write(content)
 
     def find(self, item: str | Pattern) -> list[str]:
         """ Find first occurrence of item in each line in the file.
          
         `item` can either be a string to compare a line to, or a `re.Pattern` object to match to a line.
+
+        Both methods search the entire string.
 
         Return a list of string matches.
          
@@ -192,10 +194,10 @@ class File:
         
         for line in self:
             if not is_regex:
-                if line == item:
+                if item in line:
                     matches.append(line)
             else:
-                if item.match(line):
+                if item.search(line):
                     matches.append(line)
         
         return matches
@@ -207,10 +209,10 @@ class File:
          
         Raises standard OS exceptions and additional ValueError. """
 
-        if self.path is None or not isfile(self.path):
+        if self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
 
-        remove(self.path)
+        remove(self.__path)
         self.__path = None
 
     def copy_to(self, path: str) -> tuple["File", "File"]:
@@ -222,10 +224,10 @@ class File:
         
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif self.path is None or not isfile(self.path):
+        elif self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
         
-        new_path = copy2(self.path, path)
+        new_path = copy2(self.__path, path)
 
         return self, File(new_path)
 
@@ -238,10 +240,10 @@ class File:
         
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif self.path is None or not isfile(self.path):
+        elif self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
 
-        new_path = move(self.path, path)
+        new_path = move(self.__path, path)
         self.__path = new_path
 
     def hash(self, hash_type: str="sha256") -> str:
@@ -249,7 +251,7 @@ class File:
 
         `hash_type` must be `sha1`, `sha224`, `sha256`, `sha384` or `sha512`. Defaults to `sha256`
         
-        Raises standard OS, Hashlib exceptions and additional ValueError and TypeError. """
+        Raises standard OS, Hashlib exceptions and additional ValueError. """
 
         valid_hash_types = {
             "sha1": sha1,
@@ -259,15 +261,15 @@ class File:
             "sha512": sha512
         }
 
-        if self.path is None or not isfile(self.path):
+        if self.__path is None or not isfile(self.__path):
             raise ValueError("File path must point to a valid location")
         elif hash_type not in valid_hash_types:
-            raise TypeError(f"Invalid hash type.")
+            raise ValueError(f"Invalid hash type.")
 
         buf_size = 8192
         file_hash = valid_hash_types[hash_type]()
 
-        with open(self.path, "rb") as f:
+        with open(self.__path, "rb") as f:
             while True:
                 buf = f.read(buf_size)
                 if not buf:
@@ -310,15 +312,15 @@ class Folder:
         self.__path = path
 
     def __bool__(self) -> bool:
-        return self.path is not None and isdir(self.path)
+        return self.__path is not None and isdir(self.__path)
 
     def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
-        if self.path is None or not isdir(self.path):
+        if self.__path is None or not isdir(self.__path):
             raise ValueError("Folder path must point to a valid folder location")
 
-        entries = sorted(listdir(self.path))
+        entries = sorted(listdir(self.__path))
         for item in entries:
-            full_fp = join(self.path, item)
+            full_fp = join(self.__path, item)
             
             if isfile(full_fp):
                 yield File(full_fp)
@@ -336,7 +338,7 @@ class Folder:
     def path(self, value: str) -> None:
         if not isinstance(value, str):
             raise TypeError(f"Expected type str for path value, not {value.__class__.__name__}")
-        elif self.__path is None or not isdir(self.__path):
+        elif not isdir(value):
             raise ValueError("path attribute must point to a valid folder")
         
         self.__path = value
@@ -357,24 +359,24 @@ class Folder:
 
     def files(self) -> Generator[File, None, None]:
         """ Return a generator of file objects present in the directory. """
-        if self.path is None or not isdir(self.path):
+        if self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
         
-        entries = sorted(listdir(self.path))
+        entries = sorted(listdir(self.__path))
         for file in entries:
-            full_fp = join(self.path, file)
+            full_fp = join(self.__path, file)
             
             if isfile(full_fp):
                 yield File(full_fp)
 
     def subfolders(self) -> Generator["Folder", None, None]:
         """ Return a generator object with subfolders present in the folder. """
-        if self.path is None or not isdir(self.path):
+        if self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
         
-        entries = sorted(listdir(self.path))
+        entries = sorted(listdir(self.__path))
         for dir in entries:
-            full_fp = join(self.path, dir)
+            full_fp = join(self.__path, dir)
             
             if isdir(full_fp):
                 yield Folder(full_fp)
@@ -392,10 +394,10 @@ class Folder:
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a file name, not path")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
         
-        file_path = join(self.path, name)
+        file_path = join(self.__path, name)
         new_file = File(file_path, True)
 
         return new_file
@@ -411,10 +413,10 @@ class Folder:
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a file name, not path")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
 
-        file_path = join(self.path, name)
+        file_path = join(self.__path, name)
         if isdir(file_path):
             raise ValueError("name argument must point to a file, not directory")
 
@@ -434,10 +436,10 @@ class Folder:
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
 
-        directory_path = join(self.path, name)
+        directory_path = join(self.__path, name)
 
         return Folder(directory_path, True)
 
@@ -452,10 +454,10 @@ class Folder:
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
 
-        dir_path = join(self.path, name)
+        dir_path = join(self.__path, name)
         if isfile(dir_path):
             raise ValueError("name argument must point to a directory, not file")
 
@@ -469,7 +471,7 @@ class Folder:
 
         Raises standard OS exceptions and additional ValueError. """
 
-        if self.path is None or not isdir(self.path):
+        if self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
         
         for file in self.files():
@@ -478,13 +480,13 @@ class Folder:
         for subfolder in self.subfolders():
             subfolder.delete()
 
-        if not listdir(self.path):
-            rmdir(self.path)
+        if not listdir(self.__path):
+            rmdir(self.__path)
 
         self.__path = None
 
     def copy_to(self, path: str) -> list[tuple[File, File]]:
-        """ Copy the folder to a new location. 
+        """ Copy the folder's contents to a new location. 
         
         Return a list of tuples with original file and destination file.
 
@@ -492,7 +494,7 @@ class Folder:
         
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
 
         pairs = []
@@ -510,7 +512,7 @@ class Folder:
         return pairs
 
     def move_to(self, path: str) -> list[File]:
-        """ Move the folder to a new location. 
+        """ Move the folder's contents to a new location. 
         
         Return moved files.
 
@@ -518,7 +520,7 @@ class Folder:
 
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
         
         moved_files = []
@@ -535,8 +537,8 @@ class Folder:
 
             moved_files.extend(other_moved_files)
 
-        if not listdir(self.path):
-            rmdir(self.path)
+        if not listdir(self.__path):
+            rmdir(self.__path)
 
         self.__path = path
 
@@ -547,13 +549,15 @@ class Folder:
          
         `item` can either be a string to compare a file name to, or a `re.Pattern` object to match to a file name.
 
+        Both methods search the entire file names.
+
         Return a list of `File` or `Folder` objects.
          
         Raises standard OS and regex exceptions and additional ValueError or TypeError. """
 
         if not isinstance(item, (str, Pattern)):
             raise TypeError(f"Expected type str or re.Pattern for argument item, not {item.__class__.__name__}")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("path must point to a valid folder")
 
         matches = []
@@ -561,18 +565,18 @@ class Folder:
 
         for file in self.files():
             if not is_regex:
-                if file.name == item:
+                if item in file.name:
                     matches.append(file)
             else:
-                if item.match(file.name):
+                if item.search(file.name):
                     matches.append(file)
             
         for subfolder in self.subfolders():
             if not is_regex:
-                if subfolder.name == item:
+                if item in subfolder.name:
                     matches.append(subfolder)
             else:
-                if item.match(subfolder.name):
+                if item.search(subfolder.name):
                     matches.append(subfolder)
             
             other_matches = subfolder.find(item)

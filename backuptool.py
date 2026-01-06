@@ -14,16 +14,18 @@ class BackupFolder(Folder):
     def __init__(self, path = "", ensure_exists = False):
         super().__init__(path, ensure_exists)
 
+        self.__path = self.path
+
     def __bool__(self) -> bool:
-        return self.path is not None and isdir(self.path)
+        return self.__path is not None and isdir(self.__path)
 
     def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
-        if self.path is None or not isdir(self.path):
+        if self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
 
-        entries = sorted(listdir(self.path))
+        entries = sorted(listdir(self.__path))
         for item in entries:
-            full_fp = join(self.path, item)
+            full_fp = join(self.__path, item)
             
             if isfile(full_fp):
                 yield File(full_fp)
@@ -32,12 +34,12 @@ class BackupFolder(Folder):
 
     def subfolders(self) -> Generator["Folder", None, None]:
         """ Return a generator object with subfolders present in the folder. """
-        if self.path is None or not isdir(self.path):
+        if self.__path is None or not isdir(self.__path):
             raise ValueError("path attribute must point to a valid folder")
         
-        entries = sorted(listdir(self.path))
+        entries = sorted(listdir(self.__path))
         for dir in entries:
-            full_fp = join(self.path, dir)
+            full_fp = join(self.__path, dir)
             
             if isdir(full_fp):
                 yield BackupFolder(full_fp)
@@ -55,10 +57,10 @@ class BackupFolder(Folder):
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
-        elif self.path is None or not isdir(self.path):
-            raise ValueError("Folder path must point to a valid location")
+        elif self.__path is None or not isdir(self.__path):
+            raise ValueError("path attribute must point to a valid folder")
 
-        directory_path = join(self.path, name)
+        directory_path = join(self.__path, name)
 
         return BackupFolder(directory_path, True)
 
@@ -73,10 +75,10 @@ class BackupFolder(Folder):
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
-        elif self.path is None or not isdir(self.path):
-            raise ValueError("Folder path must point to a valid location")
+        elif self.__path is None or not isdir(self.__path):
+            raise ValueError("path attribute must point to a valid folder")
 
-        dir_path = join(self.path, name)
+        dir_path = join(self.__path, name)
         if isfile(dir_path):
             raise ValueError("name argument must point to a directory, not file")
 
@@ -94,7 +96,7 @@ class BackupFolder(Folder):
         
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif self.path is None or not isdir(self.path):
+        elif self.__path is None or not isdir(self.__path):
             raise ValueError("Folder path must point to a valid location")
 
         pairs = []
