@@ -17,7 +17,7 @@ class File:
     bool(file) -> returns True if file exists
     iter(file) -> returns a generator object for each line 
     
-    An empty `path` will create the file in the CWD. 
+    An empty `path` will create a file named 'UntitledFile' in the CWD. 
     
     Raises ValueError and TypeError on invalid data. """
 
@@ -31,7 +31,7 @@ class File:
         if not exists(path):
 
             if ensure_exists:
-                open(path, "w").close()
+                open(path, "a").close()
             else:
                 raise ValueError(f"File {path} does not exist")
         elif not isfile(path):
@@ -289,7 +289,7 @@ class Folder:
     bool(Folder) -> returns True if the folder exists in the filesystem.
     iter(Folder) -> returns an iterator of the folder's files and directories.
     
-    An empty `path` will create the folder in the CWD. 
+    An empty `path` will create a folder named 'UntitledFolder' in the CWD. 
     
     Raises ValueError or TypeError on invalid data. """
 
@@ -356,6 +356,13 @@ class Folder:
             raise ValueError("path attribute must point to a valid folder")
         
         return ismount(self._path)
+
+    @property
+    def is_symlink(self) -> bool:
+        if self._path is None or not isdir(self._path):
+            raise ValueError(f"path attribute must point to a valid folder")
+        
+        return islink(self._path)
 
     def files(self) -> Generator[File, None, None]:
         """ Return a generator of file objects present in the directory. """
@@ -473,6 +480,11 @@ class Folder:
 
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a valid folder")
+        elif islink(self._path):
+            remove(self._path)
+            self._path = None
+
+            return
         
         for file in self.files():
             file.delete()
