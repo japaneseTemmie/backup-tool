@@ -31,9 +31,8 @@ class BackupFolder(Folder):
                 yield BackupFolder(full_fp)
 
     def subfolders(self) -> Generator["Folder", None, None]:
-        """ Return a generator object with subfolders present in the folder. """
         if self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a valid folder")
+            raise ValueError("path attribute must point to a folder")
         
         entries = sorted(listdir(self._path))
         for dir in entries:
@@ -43,38 +42,24 @@ class BackupFolder(Folder):
                 yield BackupFolder(full_fp)
 
     def make_subfolder(self, name: str) -> "Folder":
-        """ Create a subfolder in the folder.
-         
-        `name` must be a folder name.
-         
-        Returns the created folder.
-         
-        Raises standard OS exceptions and additional ValueError and TypeError. """
-        
         if not isinstance(name, str):
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
         elif self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a valid folder")
+            raise ValueError("path attribute must point to a folder")
 
         directory_path = join(self._path, name)
 
         return BackupFolder(directory_path, True)
 
     def delete_subfolder(self, name: str) -> None:
-        """ Delete a subfolder from the folder.
-         
-        `name` must be a folder name. 
-        
-        Raises standard OS exceptions and additional ValueError and TypeError. """
-        
         if not isinstance(name, str):
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
             raise ValueError(f"name argument must be a directory name, not path")
         elif self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a valid folder")
+            raise ValueError("path attribute must point to a folder")
 
         dir_path = join(self._path, name)
         if isfile(dir_path):
