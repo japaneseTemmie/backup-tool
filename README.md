@@ -47,7 +47,7 @@ The `exclude` property defines what parts of the `source` directory to not copy 
 
   - `directories` is a list of directory names to exclude from the backup.
 
-  [Optional] - `use_regex` is a boolean telling the script whether or not to treat the strings in `files` and `directories` as regular expressions. Each expression is matched against the full file/directory name.
+  - `use_regex` [Optional] is a boolean telling the script whether or not to treat the strings in `files` and `directories` as regular expressions. Each expression is matched against the full file/directory name.
 
   Additionally, these are **global**, **name-based** exclusions, and will be accounted for at every copy iteration.
 
