@@ -5,7 +5,7 @@ from pathutils import File, Folder
 
 from typing import Generator, Union
 from re import Pattern
-from os import makedirs, listdir
+from os import makedirs, scandir
 from os.path import join, isfile, isdir, basename
 from sys import exit as sysexit
 from random import choice
@@ -21,25 +21,25 @@ class BackupFolder(Folder):
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a valid folder")
 
-        entries = sorted(listdir(self._path))
-        for item in entries:
-            full_fp = join(self._path, item)
-            
-            if isfile(full_fp):
-                yield File(full_fp)
-            elif isdir(full_fp):
-                yield BackupFolder(full_fp)
+        entries = list(scandir(self._path))
+        entries.sort(key=lambda e: e.name)
+
+        for entry in entries:
+            if entry.is_file():
+                yield File(entry.path)
+            elif entry.is_dir():
+                yield BackupFolder(entry.path)
 
     def subfolders(self) -> Generator["Folder", None, None]:
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
-        entries = sorted(listdir(self._path))
-        for dir in entries:
-            full_fp = join(self._path, dir)
-            
-            if isdir(full_fp):
-                yield BackupFolder(full_fp)
+        entries = list(scandir(self._path))
+        entries.sort(key=lambda e: e.name)
+
+        for entry in entries:
+            if entry.is_dir():
+                yield BackupFolder(entry.path)
 
     def make_subfolder(self, name: str) -> "Folder":
         if not isinstance(name, str):

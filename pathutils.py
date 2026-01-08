@@ -1,5 +1,5 @@
 from os.path import join, isfile, isdir, exists, basename, islink, getsize, getmtime, getatime, getctime, ismount
-from os import remove, rmdir, listdir, makedirs, getcwd
+from os import remove, rmdir, scandir, makedirs
 from shutil import copy2, move
 from hashlib import sha1, sha224, sha256, sha384, sha512
 
@@ -18,16 +18,14 @@ class File:
 
     `iter(File)` -> returns a generator object for each line 
     
-    An empty `path` will create a file named 'UntitledFile' in the CWD. 
-    
     Raises ValueError and TypeError on invalid data. """
 
-    def __init__(self, path: str="", ensure_exists: bool=False) -> None:
+    def __init__(self, path: str, ensure_exists: bool=False) -> None:
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
         
         if not path:
-            path = join(getcwd(), "UntitledFile")
+            raise ValueError(f"Expected a string pointing to a file for argument path")
 
         if not exists(path):
 
@@ -286,16 +284,14 @@ class Folder:
     
     `iter(Folder)` -> returns an iterator of the folder's files and directories.
     
-    An empty `path` will create a folder named 'UntitledFolder' in the CWD. 
-    
     Raises ValueError or TypeError on invalid data. """
 
-    def __init__(self, path: str="", ensure_exists: bool=False) -> None:
+    def __init__(self, path: str, ensure_exists: bool=False) -> None:
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
         
         if not path:
-            path = join(getcwd(), "UntitledFolder")
+            raise ValueError("Expected string pointing to a folder for argument path")
         
         if not exists(path):
 
@@ -315,14 +311,14 @@ class Folder:
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
 
-        entries = sorted(listdir(self._path)) # ensure this is sorted as listdir's return is arbitrary
-        for item in entries:
-            full_fp = join(self._path, item)
-            
-            if isfile(full_fp):
-                yield File(full_fp)
-            elif isdir(full_fp):
-                yield Folder(full_fp)
+        entries = list(scandir(self._path))
+        entries.sort(key=lambda e: e.name)
+
+        for entry in entries:
+            if entry.is_file():
+                yield File(entry.path)
+            elif entry.is_dir():
+                yield Folder(entry.path)
 
     @property
     def path(self) -> str | None:
@@ -357,24 +353,24 @@ class Folder:
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
-        entries = sorted(listdir(self._path))
-        for file in entries:
-            full_fp = join(self._path, file)
-            
-            if isfile(full_fp):
-                yield File(full_fp)
+        entries = list(scandir(self._path))
+        entries.sort(key=lambda e: e.name)
+
+        for entry in entries:
+            if entry.is_file():
+                yield File(entry.path)
 
     def subfolders(self) -> Generator["Folder", None, None]:
         """ Return a generator object with subfolders present in the folder. """
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
-        entries = sorted(listdir(self._path))
-        for dir in entries:
-            full_fp = join(self._path, dir)
-            
-            if isdir(full_fp):
-                yield Folder(full_fp)
+        entries = list(scandir(self._path))
+        entries.sort(key=lambda e: e.name)
+        
+        for entry in entries:
+            if entry.is_dir():
+                yield Folder(entry.path)
 
     def add_file(self, name: str) -> File:
         """ Add a file to the folder, if it doesn't exist.
@@ -483,8 +479,7 @@ class Folder:
         for subfolder in self.subfolders():
             subfolder.delete()
 
-        if not listdir(self._path):
-            rmdir(self._path)
+        rmdir(self._path)
 
         self._path = None
 
@@ -542,8 +537,7 @@ class Folder:
 
             moved_files.extend(other_moved_files)
 
-        if not listdir(self._path):
-            rmdir(self._path)
+        rmdir(self._path)
 
         self._path = path
 
