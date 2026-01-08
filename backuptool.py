@@ -150,7 +150,7 @@ class BackupTool:
                 matches.append(orig_file.hash() == copied_file.hash())
 
                 print(f"Verified hash of {choice(all_colors)}{orig_file.path}{Colors.RESET} with {choice(all_colors)}{copied_file.path}{Colors.RESET}")
-            except (ValueError, TypeError, OSError) as e:
+            except (ValueError, TypeError, OSError, FileNotFoundError) as e:
                 return Error(f"An error occured while verifying hash of file {choice(all_colors)}{orig_file.name}{Colors.RESET} with {choice(all_colors)}{copied_file.name}{Colors.RESET}:\n{Colors.BRIGHT_RED}{e}{Colors.RESET}")
 
         return all(matches)
@@ -173,7 +173,7 @@ class BackupTool:
                 f"Copied {choice(all_colors)}{len(pair)}{Colors.RESET} entries to {choice(all_colors)}{rule.destination}{Colors.RESET}"
                 
                 print(message)
-            except (OSError, TypeError, ValueError) as e:
+            except (OSError, FileNotFoundError, TypeError, ValueError) as e:
                 return Error(f"An error occured while copying source {choice(all_colors)}{rule.source}{Colors.RESET} to destination {choice(all_colors)}{rule.destination}{Colors.RESET}:\n{Colors.BRIGHT_RED}{e}{Colors.RESET}")
             
         return pairs
