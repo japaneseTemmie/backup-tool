@@ -1,5 +1,5 @@
 from os.path import join, isfile, isdir, exists, basename, islink, getsize, getmtime, getatime, getctime, ismount
-from os import remove, rmdir, listdir, makedirs, getcwd
+from os import remove, rmdir, listdir, makedirs, getcwd, readlink
 from shutil import copy2, move
 from hashlib import sha1, sha224, sha256, sha384, sha512
 
@@ -51,51 +51,51 @@ class File:
                 yield line
 
     @property
-    def path(self) -> str:
+    def path(self) -> str | None:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return None
         
         return self._path
     
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return None
         
         return basename(self._path)
     
     @property
     def is_symlink(self) -> bool:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return False
         
         return islink(self._path)
     
     @property
-    def last_access_time(self) -> float:
+    def last_access_time(self) -> float | None:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return None
         
         return getatime(self._path)
     
     @property
-    def last_modified_time(self) -> float:
+    def last_modified_time(self) -> float | None:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return None
         
         return getmtime(self._path)
     
     @property
-    def last_metadata_modified_time(self) -> float:
+    def last_metadata_modified_time(self) -> float | None:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return None
         
         return getctime(self._path)
 
     @property
-    def size(self) -> int:
+    def size(self) -> int | None:
         if self._path is None or not isfile(self._path):
-            raise ValueError("path attribute must point to a file")
+            return None
         
         return getsize(self._path)
 
@@ -323,30 +323,30 @@ class Folder:
                 yield Folder(full_fp)
 
     @property
-    def path(self) -> str:
+    def path(self) -> str | None:
         if self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a folder")
+            return None
         
         return self._path
     
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         if self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a folder")
+            return None
         
         return basename(self._path)
     
     @property
     def is_mountpoint(self) -> bool:
         if self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a folder")
+            return False
         
         return ismount(self._path)
 
     @property
     def is_symlink(self) -> bool:
         if self._path is None or not isdir(self._path):
-            raise ValueError(f"path attribute must point to a folder")
+            return False
         
         return islink(self._path)
 
@@ -466,7 +466,7 @@ class Folder:
 
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
-        elif islink(self._path): # remove link itself, do not recurse into it
+        elif self.is_symlink: # remove link itself, do not recurse into it
             remove(self._path)
             self._path = None
 
