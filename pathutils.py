@@ -1,5 +1,5 @@
 from os.path import join, isfile, isdir, exists, basename, islink, getsize, getmtime, getatime, getctime, ismount
-from os import remove, rmdir, listdir, makedirs, getcwd, readlink
+from os import remove, rmdir, listdir, makedirs, getcwd
 from shutil import copy2, move
 from hashlib import sha1, sha224, sha256, sha384, sha512
 
@@ -170,7 +170,7 @@ class File:
             return f.write(content)
 
     def grep(self, item: str | Pattern) -> list[str]:
-        """ Find first occurrence of item in each line in the file.
+        """ Find occurrences of `item` in each line in the file.
          
         `item` can either be a string to compare a line to, or a `re.Pattern` object to match to a line.
 
@@ -548,7 +548,7 @@ class Folder:
         return moved_files
 
     def find(self, item: str | Pattern) -> list[Optional[Union[File, "Folder"]]]:
-        """ Find first occurrence of file or subfolder in the folder.
+        """ Find files or subfolders in the folder.
          
         `item` can either be a string to compare a file name to, or a `re.Pattern` object to match to a file name.
 
