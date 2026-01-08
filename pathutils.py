@@ -14,8 +14,9 @@ class File:
      
     Supports the following standard Python operations:
      
-    bool(file) -> returns True if file exists
-    iter(file) -> returns a generator object for each line 
+    `bool(File)` -> returns True if file exists
+
+    `iter(File)` -> returns a generator object for each line 
     
     An empty `path` will create a file named 'UntitledFile' in the CWD. 
     
@@ -281,8 +282,9 @@ class Folder:
      
     Supports the following standard Python operations:
      
-    bool(Folder) -> returns True if the folder exists in the filesystem.
-    iter(Folder) -> returns an iterator of the folder's files and directories.
+    `bool(Folder)` -> returns True if the folder exists in the filesystem.
+    
+    `iter(Folder)` -> returns an iterator of the folder's files and directories.
     
     An empty `path` will create a folder named 'UntitledFolder' in the CWD. 
     
