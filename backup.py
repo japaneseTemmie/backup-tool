@@ -28,7 +28,7 @@ def main(args: Namespace) -> None:
         print(f"{choice(all_colors)}DRY RUN{Colors.RESET}")
 
     print(backup.get_src_dst_string())
-    if not ask(f"{choice(all_colors)}Continue? (y/N){Colors.RESET}: "):
+    if not ask(f"{choice(all_colors)}Continue? (y/n){Colors.RESET}: "):
         sysexit(0)
     
     copied = backup.copy_files()
