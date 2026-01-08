@@ -21,8 +21,9 @@ class BackupFolder(Folder):
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a valid folder")
 
-        entries = list(scandir(self._path))
-        entries.sort(key=lambda e: e.name)
+        with scandir(self._path) as iterator:
+            entries = list(iterator)
+            entries.sort(key=lambda e: e.name)
 
         for entry in entries:
             if entry.is_file():
@@ -34,8 +35,9 @@ class BackupFolder(Folder):
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
-        entries = list(scandir(self._path))
-        entries.sort(key=lambda e: e.name)
+        with scandir(self._path) as iterator:
+            entries = list(iterator)
+            entries.sort(key=lambda e: e.name)
 
         for entry in entries:
             if entry.is_dir():
