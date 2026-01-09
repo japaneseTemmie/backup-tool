@@ -75,7 +75,7 @@ class BackupFolder(Folder):
         
         Additionally, pass a list of strings (file or directory names) or re.Pattern objects to exclude from copy.
 
-        Return a list of tuples with original file and destination file.
+        Return a list of tuples with original file and destination file or tuples with `None`, `None` if `dry_run` is `True`.
 
         Raises standard OS exceptions and additional ValueError and TypeError. """
         
