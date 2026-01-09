@@ -1,11 +1,11 @@
 from os.path import join, isfile, isdir, exists, basename, islink, getsize, getmtime, getatime, getctime, ismount
-from os import remove, rmdir, scandir, makedirs
+from os import remove, rmdir, scandir, makedirs, readlink
 from shutil import copy2, move
 from hashlib import sha1, sha224, sha256, sha384, sha512
 
 from re import Pattern
 
-from typing import Generator, Union, Optional
+from typing import Generator, Union
 
 class File:
     """ File object.
@@ -48,6 +48,13 @@ class File:
         with open(self._path) as f:
             for line in f:
                 yield line
+
+    @property
+    def linked_file(self) -> str | None:
+        if self._path is None or not isfile(self._path) or not islink(self._path):
+            return None
+        
+        return readlink(self._path)
 
     @property
     def path(self) -> str | None:
@@ -136,22 +143,25 @@ class File:
         with open(self._path, "r", encoding=encoding) as f:
             return f.read(bufsize)
 
-    def write_bytes(self, content: bytes) -> int:
+    def write_bytes(self, content: bytes, append: bool=False) -> int:
         """ Write `content` to file as bytes, if it exists.
 
-        Returns number of bytes written. 
+        Return number of bytes written.
         
         Raises standard OS exceptions and additional ValueError or TypeError. """
         
         if not isinstance(content, bytes):
-            raise TypeError(f"Expected type bytes for argument content, not {content.__class__}")
+            raise TypeError(f"Expected type bytes for argument content, not {content.__class__.__name__}")
+        elif not isinstance(append, bool):
+            raise TypeError(f"Expected type bool for argument append, not {append.__class__.__name__}")
         elif self._path is None:
             raise ValueError("path attribute must point to a file")
 
-        with open(self._path, "wb") as f:
+        mode = "wb" if not append else "ab"
+        with open(self._path, mode) as f:
             return f.write(content)
         
-    def write_text(self, content: str, encoding: str="utf-8") -> int:
+    def write_text(self, content: str, encoding: str="utf-8", append: bool=False) -> int:
         """ Write `content` to file as text, if it exists.
 
         Returns number of characters written. 
@@ -159,13 +169,16 @@ class File:
         Raises standard OS exceptions and additional ValueError or TypeError. """
         
         if not isinstance(content, str):
-            raise TypeError(f"Expected type str for argument content, not {content.__class__}")
+            raise TypeError(f"Expected type str for argument content, not {content.__class__.__name__}")
         elif not isinstance(encoding, str):
             raise TypeError(f"Expected type str for argument encoding, not {encoding.__class__.__name__}")
+        elif not isinstance(append, bool):
+            raise TypeError(f"Expected type bool for argument append, not {append.__class__.__name__}")
         elif self._path is None:
             raise ValueError("path attribute must point to a file")
 
-        with open(self._path, "w", encoding=encoding) as f:
+        mode = "w" if not append else "a"
+        with open(self._path, mode, encoding=encoding) as f:
             return f.write(content)
 
     def grep(self, item: str | Pattern) -> list[str]:
@@ -179,6 +192,9 @@ class File:
          
         Raises standard OS and regex exceptions and additional ValueError. """
         
+        if not isinstance(item, (str, Pattern)):
+            raise TypeError(f"Expected type str or re.Pattern for argument item, not {item.__class__.__name__}")
+
         matches = []
         is_regex = isinstance(item, Pattern)
         
@@ -204,14 +220,16 @@ class File:
 
         try:
             remove(self._path)
-        except FileNotFoundError:
+        except FileNotFoundError: # Since file is already removed, no need for raising an exception. Just update path
             pass
 
         self._path = None
 
     def copy_to(self, path: str) -> tuple["File", "File"]:
         """ Copy the file to a new location.
-         
+        
+        Symlinks are always followed.
+
         Returns source file and new file.
 
         Raises standard OS exceptions and additional ValueError or TypeError. """
@@ -322,6 +340,13 @@ class Folder:
                 yield Folder(entry.path)
 
     @property
+    def linked_folder(self) -> str | None:
+        if self._path is None or not isdir(self._path) or not islink(self._path):
+            return None
+        
+        return readlink(self._path)
+
+    @property
     def path(self) -> str | None:
         if self._path is None or not isdir(self._path):
             return None
@@ -350,7 +375,10 @@ class Folder:
         return islink(self._path)
 
     def files(self) -> Generator[File, None, None]:
-        """ Return a generator of file objects present in the directory. """
+        """ Return a generator of file objects present in the directory. 
+        
+        Source directory will be sorted. """
+
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
@@ -363,7 +391,9 @@ class Folder:
                 yield File(entry.path)
 
     def subfolders(self) -> Generator["Folder", None, None]:
-        """ Return a generator object with subfolders present in the folder. """
+        """ Return a generator object with subfolders present in the folder. 
+        
+        Source directory will be sorted. """
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
@@ -474,10 +504,7 @@ class Folder:
             return
         
         for file in self.files():
-            try:
-                file.delete()
-            except FileNotFoundError:
-                continue # deleted already, so just keep going
+            file.delete()
 
         for subfolder in self.subfolders():
             subfolder.delete()
@@ -489,6 +516,8 @@ class Folder:
     def copy_to(self, path: str) -> list[tuple[File, File]]:
         """ Copy the folder's contents to a new location. 
         
+        Symlinks are always followed.
+
         Return a list of tuples with original file and destination file.
 
         Raises standard OS exceptions and additional ValueError or TypeError. """
@@ -546,7 +575,7 @@ class Folder:
 
         return moved_files
 
-    def find(self, item: str | Pattern) -> list[Optional[Union[File, "Folder"]]]:
+    def find(self, item: str | Pattern) -> list[Union[File, "Folder"]]:
         """ Find files or subfolders in the folder.
          
         `item` can either be a string to compare a file name to, or a `re.Pattern` object to match to a file name.
