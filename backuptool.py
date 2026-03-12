@@ -173,7 +173,7 @@ class BackupTool:
                 f"Copied {choice(all_colors)}{len(pair)}{Colors.RESET} entries to {choice(all_colors)}{rule.destination}{Colors.RESET}"
                 
                 print(message)
-            except (OSError, FileNotFoundError, TypeError, ValueError) as e:
+            except (OSError, FileNotFoundError, PermissionError, TypeError, ValueError) as e:
                 return Error(f"An error occured while copying source {choice(all_colors)}{rule.source}{Colors.RESET} to destination {choice(all_colors)}{rule.destination}{Colors.RESET}:\n{Colors.BRIGHT_RED}{e}{Colors.RESET}")
             
         return pairs

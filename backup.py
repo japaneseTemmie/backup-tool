@@ -25,7 +25,7 @@ def main(args: Namespace) -> None:
     backup = BackupTool(args.dry_run)
 
     if args.dry_run:
-        print(f"{choice(all_colors)}DRY RUN{Colors.RESET}")
+        print(f"{choice(all_colors)}===DRY RUN==={Colors.RESET}")
 
     print(backup.get_src_dst_string())
     if not ask(f"{choice(all_colors)}Continue? (y/n){Colors.RESET}: "):
@@ -36,7 +36,7 @@ def main(args: Namespace) -> None:
         print(copied.msg)
         sysexit(1)
 
-    print(f"Successfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} entries.")
+    print(f"{'Would have' if args.dry_run else ''} {'s' if args.dry_run else 'S'}uccessfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} entries.")
     sleep(1)
 
     if not args.no_fs_sync and not args.dry_run:
