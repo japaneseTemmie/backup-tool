@@ -677,6 +677,12 @@ class Folder:
 
             moved_files.extend(other_moved_files)
 
+        # look for broken links here too
+        with scandir(self._path) as iterator:
+            for entry in iterator:
+                if entry.is_symlink():
+                    move(entry.path, join(path, entry.name))
+
         rmdir(self._path)
 
         self._path = path
