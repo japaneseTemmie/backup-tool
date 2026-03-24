@@ -4,7 +4,13 @@ from colors import Colors, all_colors
 
 from argparse import ArgumentParser, Namespace
 from sys import exit as sysexit
-from os import sync
+
+try:
+    from os import sync
+    _SUPPORTS_FS_SYNC = True
+except ImportError:
+    _SUPPORTS_FS_SYNC = False
+
 from time import sleep
 from random import choice
 
@@ -41,11 +47,15 @@ def main(args: Namespace) -> None:
 
     if not args.no_fs_sync and not args.dry_run:
         print(f"{choice(all_colors)}Syncing filesystem..{Colors.RESET}")
-        try:
-            sync()
-        except Exception as e:
-            print(f"Syncing filesystem failed. Cannot proceed with hash verification. Your copy may not be fully written.\nErr: {e}")
-            sysexit(1)
+        
+        if _SUPPORTS_FS_SYNC:
+            try:
+                sync()
+            except Exception as e:
+                print(f"Syncing filesystem failed. Cannot proceed with hash verification. Your copy may not be fully written.\nErr: {e}")
+                sysexit(1)
+        else:
+            print(f"Unable to sync filesystem. OS might not provide support for it, and hash verification might fail due to unwritten buffers.")
 
     if not args.no_hash_verification and not args.dry_run:
         print(f"{choice(all_colors)}Verifying hashes..{Colors.RESET}")
