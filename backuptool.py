@@ -5,8 +5,8 @@ from pathutils import File, Folder
 
 from typing import Generator, Union
 from re import Pattern
-from os import makedirs, scandir
-from os.path import join, isfile, isdir, basename
+from os import makedirs, scandir, readlink, symlink
+from os.path import join, isfile, isdir, islink, basename
 from sys import exit as sysexit
 from random import choice
 
@@ -17,7 +17,7 @@ class BackupFolder(Folder):
     def __bool__(self) -> bool:
         return self._path is not None and isdir(self._path)
 
-    def __iter__(self) -> Generator[Union[File, "Folder"], None, None]:
+    def __iter__(self) -> Generator[Union[File, "BackupFolder"], None, None]:
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a valid folder")
 
@@ -31,7 +31,7 @@ class BackupFolder(Folder):
             elif entry.is_dir():
                 yield BackupFolder(entry.path)
 
-    def subfolders(self) -> Generator["Folder", None, None]:
+    def subfolders(self) -> Generator["BackupFolder", None, None]:
         if self._path is None or not isdir(self._path):
             raise ValueError("path attribute must point to a folder")
         
@@ -43,7 +43,7 @@ class BackupFolder(Folder):
             if entry.is_dir():
                 yield BackupFolder(entry.path)
 
-    def make_subfolder(self, name: str) -> "Folder":
+    def make_subfolder(self, name: str) -> "BackupFolder":
         if not isinstance(name, str):
             raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
         elif basename(name) != name:
@@ -70,7 +70,14 @@ class BackupFolder(Folder):
         folder = BackupFolder(dir_path)
         folder.delete()
 
-    def copy_to(self, path: str, exclude_files: list[Pattern | str] | list, exclude_directories: list[Pattern | str] | list, dry_run: bool=False) -> list[tuple[File | None, File | None]]:
+    def copy_to(
+            self, 
+            path: str, 
+            exclude_files: list[Pattern | str] | list, 
+            exclude_directories: list[Pattern | str] | list, 
+            follow_symlinks: bool=True,
+            dry_run: bool=False
+        ) -> list[tuple[File | None, File | None]]:
         """ Copy the folder to a new location. 
         
         Additionally, pass a list of strings (file or directory names) or re.Pattern objects to exclude from copy.
@@ -81,6 +88,8 @@ class BackupFolder(Folder):
         
         if not isinstance(path, str):
             raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
+        elif not isinstance(follow_symlinks, bool):
+            raise TypeError(f"Expected type bool for argument follow_symlinks, not {follow_symlinks.__class__.__name__}")
         elif self._path is None or not isdir(self._path):
             raise ValueError("Folder path must point to a valid location")
 
@@ -95,7 +104,7 @@ class BackupFolder(Folder):
                 continue
 
             if not dry_run:
-                source_file, new_file = file.copy_to(join(path, file.name))
+                source_file, new_file = file.copy_to(join(path, file.name), follow_symlinks)
             else:
                 source_file, new_file = None, None
             pairs.append((source_file, new_file))
@@ -104,11 +113,31 @@ class BackupFolder(Folder):
             if exclude_directories and any((isinstance(exclude_rule, Pattern) and exclude_rule.match(subfolder.name)) or (isinstance(exclude_rule, str) and subfolder.name == exclude_rule) for exclude_rule in exclude_directories):
                 print(f"Skipped directory {choice(all_colors)}{subfolder.path}{Colors.RESET}")
                 continue
-            
-            other_pairs = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories, dry_run)
-            pairs.extend(other_pairs)
+
+            if not follow_symlinks and islink(subfolder.path):
+                src = readlink(subfolder.path)
+                symlink(src, join(path, subfolder.name))
+            else:
+                other_pairs = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories, follow_symlinks, dry_run)
+                pairs.extend(other_pairs)
 
         return pairs
+
+    def link_to(self, dest: str) -> "BackupFolder":
+        """ Symlink a folder to this one. 
+        
+        Return linked folder.
+
+        Raises standard OS exceptions and additional ValueError and TypeError. """
+
+        if not isinstance(dest, str):
+            raise TypeError(f"Expected type str for argument dest, not {dest.__class__.__name__}")
+        elif self._path is None or not isdir(self._path):
+            raise ValueError("dest attribute must point to a valid folder")
+        
+        symlink(self._path, dest, True)
+
+        return BackupFolder(dest)
 
 class BackupTool:
     def __init__(self, dry_run: bool) -> None:
@@ -165,7 +194,7 @@ class BackupTool:
         for rule in self.rules:
             try:
                 source_folder = BackupFolder(rule.source)
-                pair = source_folder.copy_to(rule.destination, rule.exclude_files, rule.exclude_directories, self.dry_run)
+                pair = source_folder.copy_to(rule.destination, rule.exclude_files, rule.exclude_directories, dry_run=self.dry_run)
 
                 pairs.extend(pair)
 
