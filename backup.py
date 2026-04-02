@@ -1,4 +1,4 @@
-from backuptool import BackupManager
+from backupmanager import BackupManager
 from error import Error
 from colors import Colors, all_colors
 
