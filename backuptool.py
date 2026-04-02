@@ -1,145 +1,19 @@
 from error import Error
-from rulesparser import RulesParser
+from rulesparser import RulesParser, Rule
 from colors import Colors, all_colors
-from pathutils import File, Folder
 
-from typing import Generator, Union
-from re import Pattern
-from os import makedirs, scandir, readlink, symlink
-from os.path import join, isfile, isdir, islink, basename
+from typing import Generator
+from hashlib import sha256
+from fnmatch import fnmatch
+from os import scandir
+from os.path import isdir, relpath, join
+from shutil import copytree, ignore_patterns, Error as shutilError
 from sys import exit as sysexit
 from random import choice
 
-class BackupFolder(Folder):
-    def __init__(self, path = "", ensure_exists = False):
-        super().__init__(path, ensure_exists)
+class BackupManager:
+    """ Backup manager object to handle core functions. """
 
-    def __bool__(self) -> bool:
-        return self._path is not None and isdir(self._path)
-
-    def __iter__(self) -> Generator[Union[File, "BackupFolder"], None, None]:
-        if self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a valid folder")
-
-        with scandir(self._path) as iterator:
-            entries = list(iterator)
-            entries.sort(key=lambda e: e.name)
-
-        for entry in entries:
-            if entry.is_file():
-                yield File(entry.path)
-            elif entry.is_dir():
-                yield BackupFolder(entry.path)
-
-    def subfolders(self) -> Generator["BackupFolder", None, None]:
-        if self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a folder")
-        
-        with scandir(self._path) as iterator:
-            entries = list(iterator)
-            entries.sort(key=lambda e: e.name)
-
-        for entry in entries:
-            if entry.is_dir():
-                yield BackupFolder(entry.path)
-
-    def make_subfolder(self, name: str) -> "BackupFolder":
-        if not isinstance(name, str):
-            raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
-        elif basename(name) != name:
-            raise ValueError(f"name argument must be a directory name, not path")
-        elif self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a folder")
-
-        directory_path = join(self._path, name)
-
-        return BackupFolder(directory_path, True)
-
-    def delete_subfolder(self, name: str) -> None:
-        if not isinstance(name, str):
-            raise TypeError(f"Expected type str for name argument, not {name.__class__.__name__}")
-        elif basename(name) != name:
-            raise ValueError(f"name argument must be a directory name, not path")
-        elif self._path is None or not isdir(self._path):
-            raise ValueError("path attribute must point to a folder")
-
-        dir_path = join(self._path, name)
-        if isfile(dir_path):
-            raise ValueError("name argument must point to a directory, not file")
-
-        folder = BackupFolder(dir_path)
-        folder.delete()
-
-    def copy_to(
-            self, 
-            path: str, 
-            exclude_files: list[Pattern | str] | list, 
-            exclude_directories: list[Pattern | str] | list, 
-            follow_symlinks: bool=True,
-            dry_run: bool=False
-        ) -> list[tuple[File | None, File | None]]:
-        """ Copy the folder to a new location. 
-        
-        Additionally, pass a list of strings (file or directory names) or re.Pattern objects to exclude from copy.
-
-        Return a list of tuples with original file and destination file or tuples with `None`, `None` if `dry_run` is `True`.
-
-        Raises standard OS exceptions and additional ValueError and TypeError. """
-        
-        if not isinstance(path, str):
-            raise TypeError(f"Expected type str for argument path, not {path.__class__.__name__}")
-        elif not isinstance(follow_symlinks, bool):
-            raise TypeError(f"Expected type bool for argument follow_symlinks, not {follow_symlinks.__class__.__name__}")
-        elif self._path is None or not isdir(self._path):
-            raise ValueError("Folder path must point to a valid location")
-
-        pairs = []
-
-        if not dry_run:
-            makedirs(path, exist_ok=True)
-
-        for file in self.files():
-            if exclude_files and any((isinstance(exclude_rule, Pattern) and exclude_rule.match(file.name)) or (isinstance(exclude_rule, str) and file.name == exclude_rule) for exclude_rule in exclude_files):
-                print(f"Skipped file {choice(all_colors)}{file.path}{Colors.RESET}")
-                continue
-
-            if not dry_run:
-                source_file, new_file = file.copy_to(join(path, file.name), follow_symlinks)
-            else:
-                source_file, new_file = None, None
-            pairs.append((source_file, new_file))
-
-        for subfolder in self.subfolders():
-            if exclude_directories and any((isinstance(exclude_rule, Pattern) and exclude_rule.match(subfolder.name)) or (isinstance(exclude_rule, str) and subfolder.name == exclude_rule) for exclude_rule in exclude_directories):
-                print(f"Skipped directory {choice(all_colors)}{subfolder.path}{Colors.RESET}")
-                continue
-
-            if not follow_symlinks and islink(subfolder.path):
-                src = readlink(subfolder.path)
-                symlink(src, join(path, subfolder.name))
-            else:
-                other_pairs = subfolder.copy_to(join(path, subfolder.name), exclude_files, exclude_directories, follow_symlinks, dry_run)
-                pairs.extend(other_pairs)
-
-        return pairs
-
-    def link_to(self, dest: str) -> "BackupFolder":
-        """ Symlink a folder to this one. 
-        
-        Return linked folder.
-
-        Raises standard OS exceptions and additional ValueError and TypeError. """
-
-        if not isinstance(dest, str):
-            raise TypeError(f"Expected type str for argument dest, not {dest.__class__.__name__}")
-        elif self._path is None or not isdir(self._path):
-            raise ValueError("dest attribute must point to a valid folder")
-        
-        symlink(self._path, dest, True)
-
-        return BackupFolder(dest)
-
-class BackupTool:
     def __init__(self, dry_run: bool) -> None:
         self.dry_run = dry_run
         self.rules_parser = RulesParser()
@@ -155,54 +29,148 @@ class BackupTool:
             sysexit(1)
 
     def get_src_dst_string(self) -> str:
+        """ Return a string containing all the rules' changes and their exclusion. """
+        
         string = str()
 
-        string += f"{'Would' if self.dry_run else 'Will'} copy and verify hash:\n"
+        string += f"Will copy and verify hash:\n"
         for rule in self.rules:
             string += f"{choice(all_colors)}{rule.source} {Colors.RESET}"
             string += "-> "
             string += f"{choice(all_colors)}{rule.destination} {Colors.RESET}"
-            if rule.exclude_files:
-                string += f"{choice(all_colors)}(excluding {', '.join([exclude_rule.pattern if isinstance(exclude_rule, Pattern) else exclude_rule for exclude_rule in rule.exclude_files])} files){Colors.RESET}"
-            if rule.exclude_directories:
-                string += f"{choice(all_colors)} (excluding {', '.join([exclude_rule.pattern if isinstance(exclude_rule, Pattern) else exclude_rule for exclude_rule in rule.exclude_directories])} directories){Colors.RESET}"
+            if rule.ignore:
+                string += f"{choice(all_colors)}(excluding {', '.join([excluded for excluded in rule.ignore])} files){Colors.RESET}"
             string += "\n"
 
         return string
 
-    def verify_hashes(self, pairs: list[tuple[File, File]]) -> bool | Error:
-        """ Verify each file's hash in `pairs`. """
+    def _do_copy_op(self, rule: Rule) -> str | list[tuple[str, str, str]]:
+        """ Copy source to destination as specified by the rule argument. 
         
-        matches = []
-        for orig_file, copied_file in pairs:
-            try:
-                matches.append(orig_file.hash() == copied_file.hash())
+        On success, return a string of the copied directory, otherwise return a 3-element tuple with source, destination and message representing failure. """
 
-                print(f"Verified hash of {choice(all_colors)}{orig_file.path}{Colors.RESET} with {choice(all_colors)}{copied_file.path}{Colors.RESET}")
-            except (ValueError, TypeError, OSError, FileNotFoundError) as e:
-                return Error(f"An error occured while verifying hash of file {choice(all_colors)}{orig_file.name}{Colors.RESET} with {choice(all_colors)}{copied_file.name}{Colors.RESET}:\n{Colors.BRIGHT_RED}{e}{Colors.RESET}")
+        if self.dry_run:
+            print(f"{choice(all_colors)}[DRY RUN] Skipped copy of {rule.source} to {rule.destination} as per dry run flag{Colors.RESET}")
 
-        return all(matches)
+            return rule.destination
 
-    def copy_files(self) -> list[tuple[File, File]] | Error:
+        try:
+            ret = copytree(
+                rule.source,
+                rule.destination,
+                ignore=ignore_patterns(*rule.ignore) if rule.ignore else None,
+                dirs_exist_ok=True
+            )
+
+            return ret
+        except shutilError as exc:
+            return exc.args[0]
+
+    def copy_files(self) -> tuple[list[str], list[str]] | Error:
         """ Copy all files from source to destination as defined in rules.json 
         
-        Return original and copied files. """
+        Return a tuple with a list of original and copied directories. """
 
-        pairs = []
+        source, copied = [], []
 
         for rule in self.rules:
-            try:
-                source_folder = BackupFolder(rule.source)
-                pair = source_folder.copy_to(rule.destination, rule.exclude_files, rule.exclude_directories, dry_run=self.dry_run)
+            ret = self._do_copy_op(rule)
 
-                pairs.extend(pair)
+            if not isinstance(ret, str):
+                error_msg = f"{choice(all_colors)}Multiple errors occurred while copying files.{Colors.RESET}\n"
+                for src, dst, msg in ret:
+                    error_msg += f"Failed to copy {choice(all_colors)}{src}{Colors.RESET} to {choice(all_colors)}{dst}{Colors.RESET}: {Colors.BRIGHT_RED}{msg}{Colors.RESET}\n"
 
-                message = f"Would have copied {choice(all_colors)}{len(pair)}{Colors.RESET} entries to {choice(all_colors)}{rule.destination}{Colors.RESET}" if self.dry_run else\
-                f"Copied {choice(all_colors)}{len(pair)}{Colors.RESET} entries to {choice(all_colors)}{rule.destination}{Colors.RESET}"
-                
-                print(message)
-            except (OSError, FileNotFoundError, PermissionError, TypeError, ValueError) as e:
-                return Error(f"An error occured while copying source {choice(all_colors)}{rule.source}{Colors.RESET} to destination {choice(all_colors)}{rule.destination}{Colors.RESET}:\n{Colors.BRIGHT_RED}{e}{Colors.RESET}")
+                return Error(error_msg)
             
-        return pairs
+            copied.append(ret)
+            source.append(rule.source)
+
+        return source, copied
+    
+    def _get_files(self, path: str, ignore: list[str] | None=None, sort: bool=True) -> list[str] | Error:
+        """ Recurse into the given path and build a list of file paths. 
+        
+        Additionally, exclusions can be specified with the ignore argument. """
+        
+        if not isdir(path):
+            return Error(f"Path {path} is not a directory")
+        
+        files = []
+
+        with scandir(path) as iterator:
+            if sort:
+                entries = list(iterator)
+                entries.sort(key=lambda e: e.name)
+            else:
+                entries = iterator
+
+            for entry in entries:
+                if ignore is not None and any(fnmatch(entry.name, pattern) for pattern in ignore):
+                    continue
+                
+                if entry.is_file():
+                    files.append(entry.path)
+                elif entry.is_dir():
+                    other = self._get_files(entry.path, ignore, sort)
+                    if isinstance(other, Error):
+                        return other
+                    
+                    files.extend(other)
+
+        return files
+
+    def _read_buffers(self, fp: str) -> Generator[bytes, None, None]:
+        """ Return 8kb chunks of file at given file path. """
+        
+        buf_size = 8192
+        with open(fp, "rb") as f:
+            while True:
+                buf = f.read(buf_size)
+                if not buf:
+                    return
+
+                yield buf
+
+    def _verify_files(self, src: str, dst: str) -> bool | Error:
+        """ Build and verify source and destination files' hashes. """
+        
+        src_hash = sha256()
+        dst_hash = sha256()
+
+        try:
+            for src_buf in self._read_buffers(src):
+                src_hash.update(src_buf)
+            for dst_buf in self._read_buffers(dst):
+                dst_hash.update(dst_buf)
+
+            print(f"Verified hash of {choice(all_colors)}{src}{Colors.RESET} with {choice(all_colors)}{dst}{Colors.RESET}")
+
+            return src_hash.hexdigest() == dst_hash.hexdigest()
+        except OSError as exc:
+            return Error(f"{Colors.BRIGHT_RED}An error occurred while reading file buffers: {exc}{Colors.RESET}")
+
+    def _do_hash_verification(self) -> bool | Error:
+        """ Compute and compare source and destination file SHA-256 hashes of all provided rules. """
+        
+        for rule in self.rules:
+            try:
+                src_files = self._get_files(rule.source, rule.ignore)
+                if isinstance(src_files, Error): return src_files
+
+                for src_file in src_files:
+                    relative = relpath(src_file, rule.source)
+                    dst_file = join(rule.destination, relative)
+
+                    ret = self._verify_files(src_file, dst_file)
+                    if isinstance(ret, Error):
+                        return ret
+                    elif not ret:
+                        return False
+            except OSError as exc:
+                return Error(f"{Colors.BRIGHT_RED}An error occurred while verifiying hashes: {exc}{Colors.RESET}")
+
+        return True
+
+    def verify_hashes(self) -> bool | Error:
+        return self._do_hash_verification()

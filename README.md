@@ -6,9 +6,15 @@ Simply copies specified files to another destination and verifies their hash.
 
 Does not modify original data in any way.
 
+# Key features
+- Post-copy filesystem sync (POSIX only).
+- SHA-256 based hash verification after copy.
+- Simple exclusion system.
+- Easy-to-read JSON-based configuration file.
+
 # Usage
 
-To use the tool, simply put your 'rules' in a `rules.json` file. Which must follow the JSON structure.
+To use the tool, ensure you have atleast Python 3.10. Then, simply put your 'rules' in a `rules.json` file. Which must follow the JSON structure.
 
 Example `rules.json`:
 
@@ -18,18 +24,12 @@ Example `rules.json`:
         {
             "source": "/my/source/directory/",
             "destination": "/my/destination/directory/",
-            "exclude": {
-                "files": ["badfile1", "badfile2"],
-                "directories": ["badfolder1"]
-            }
+            "ignore": ["badfile1", "badfile2", "badfolder"]
         },
         {
             "source": "/my/other/source/directory/",
             "destination": "/my/other/destination/directory/",
-            "exclude": {
-                "files": [".*\\.log"],
-                "use_regex": true
-            }
+            "ignore": ["*.log"]
         }
     ]
 }
@@ -37,19 +37,11 @@ Example `rules.json`:
 
 The `source` is the directory to recurse through. Single files are not supported.
 
-The `destination` is the directory to copy data to. **Will overwrite existing files with the same name at destination**.
+The `destination` is the directory to copy data to. **Any existing files with the same name at destination will be overwritten**.
 
 These two properties **must** exist in every rule.
 
-The `exclude` property defines what parts of the `source` directory to not copy to `destination`. It can contain either one or two other core properties:
-
-  - `files` is a list of file names to exclude from the backup.
-
-  - `directories` is a list of directory names to exclude from the backup.
-
-  - `use_regex` [Optional] is a boolean telling the script whether or not to treat the strings in `files` and `directories` as regular expressions. Each expression is matched against the full file/directory name.
-
-  Additionally, these are **global**, **name-based** exclusions, and will be accounted for at every copy iteration.
+The `ignore` optional property defines what parts of the `source` directory to not copy to `destination`. It is defined as a list of strings and supports glob patterns.
 
 Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected files.
 
