@@ -88,7 +88,7 @@ class BackupManager:
 
         return source, copied
     
-    def _get_files(self, path: str, ignore: list[str] | None=None, sort: bool=True) -> list[str] | Error:
+    def _get_files(self, path: str, ignore: list[str] | None=None, sort: bool=False) -> list[str] | Error:
         """ Recurse into the given path and build a list of file paths. 
         
         Additionally, exclusions can be specified with the ignore argument. """
