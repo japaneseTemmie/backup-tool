@@ -7,8 +7,13 @@ from hashlib import sha256
 from fnmatch import fnmatch
 from os import scandir
 from os.path import isdir, relpath, join
-from shutil import copytree, ignore_patterns, Error as shutilError
+from shutil import copy2, copytree, ignore_patterns, Error as shutilError
 from random import choice
+
+def _copy_impl(src: str, dst: str) -> str:
+    print(f"Copying {choice(all_colors)}{src}{Colors.RESET} to {choice(all_colors)}{dst}{Colors.RESET}")
+
+    return copy2(src, dst)
 
 class BackupManager:
     """ Backup manager object to handle core functions. """
@@ -48,6 +53,7 @@ class BackupManager:
                 rule.source,
                 rule.destination,
                 ignore=ignore_patterns(*rule.ignore) if rule.ignore else None,
+                copy_function=_copy_impl,
                 dirs_exist_ok=True
             )
 
