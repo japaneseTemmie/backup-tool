@@ -1,5 +1,5 @@
 from error import Error
-from rulesparser import RulesParser, Rule
+from rulesparser import Rule
 from colors import Colors, all_colors
 
 from typing import Generator
@@ -8,25 +8,14 @@ from fnmatch import fnmatch
 from os import scandir
 from os.path import isdir, relpath, join
 from shutil import copytree, ignore_patterns, Error as shutilError
-from sys import exit as sysexit
 from random import choice
 
 class BackupManager:
     """ Backup manager object to handle core functions. """
 
-    def __init__(self, dry_run: bool) -> None:
+    def __init__(self, dry_run: bool, rules: list[Rule]) -> None:
         self.dry_run = dry_run
-        self.rules_parser = RulesParser()
-
-        self.rules_content = self.rules_parser.get_file_contents()
-        if isinstance(self.rules_content, Error):
-            print(self.rules_content.msg)
-            sysexit(1)
-
-        self.rules = self.rules_parser.parse_rules(self.rules_content)
-        if isinstance(self.rules, Error):
-            print(self.rules.msg)
-            sysexit(1)
+        self.rules = rules
 
     def get_src_dst_string(self) -> str:
         """ Return a string containing all the rules' changes and their exclusion. """
@@ -77,7 +66,7 @@ class BackupManager:
             ret = self._do_copy_op(rule)
 
             if not isinstance(ret, str):
-                error_msg = f"{choice(all_colors)}Multiple errors occurred while copying files.{Colors.RESET}\n"
+                error_msg = f"{choice(all_colors)}Error(s) occurred while copying files.{Colors.RESET}\n"
                 for src, dst, msg in ret:
                     error_msg += f"Failed to copy {choice(all_colors)}{src}{Colors.RESET} to {choice(all_colors)}{dst}{Colors.RESET}: {Colors.BRIGHT_RED}{msg}{Colors.RESET}\n"
 

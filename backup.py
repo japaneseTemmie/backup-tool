@@ -1,4 +1,5 @@
-from backupmanager import BackupManager
+from backupmanager import BackupManager, Rule
+from rulesparser import RulesParser
 from error import Error
 from colors import Colors, all_colors
 
@@ -46,7 +47,7 @@ def _do_copy(backup_manager: BackupManager) -> None:
 
     _, copied = ret
 
-    print(f"{'[DRY RUN] Would have' if args.dry_run else ''} {'s' if args.dry_run else 'S'}uccessfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} directories.")
+    print(f"{'[DRY RUN] Would have ' if args.dry_run else ''}{'s' if args.dry_run else 'S'}uccessfully copied {choice(all_colors)}{len(copied)}{Colors.RESET} directories.")
     sleep(1)
 
 def _do_sync(args: Namespace) -> None:
@@ -92,11 +93,31 @@ def _do_hash_verification(backup_manager: BackupManager) -> None:
     else:
         print(f"{Colors.BRIGHT_RED}Hashes don't match!{Colors.RESET}")
 
-def main(args: Namespace) -> None:
-    backup_manager = BackupManager(args.dry_run)
+def _get_rules() -> list[Rule] | Error:
+    """ Get a list of rules provided by the `RulesParser` object. """
 
+    parser = RulesParser()
+    content = parser.get_file_contents()
+
+    if isinstance(content, Error):
+        print(content.msg)
+        sysexit(1)
+    
+    rules = parser.parse_rules(content)
+
+    if isinstance(rules, Error):
+        print(rules.msg)
+        sysexit(1)
+
+    return rules
+
+def main(args: Namespace) -> None:
     if args.dry_run:
         print(f"{choice(all_colors)}===DRY RUN==={Colors.RESET}")
+
+    rules = _get_rules()
+
+    backup_manager = BackupManager(args.dry_run, rules)
 
     _show_changes(backup_manager)
     _do_copy(backup_manager)
