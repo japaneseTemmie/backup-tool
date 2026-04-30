@@ -38,10 +38,10 @@ class BackupManager:
 
         return string
 
-    def _do_copy_op(self, rule: Rule) -> str | list[tuple[str, str, str]]:
+    def _do_copy_op(self, rule: Rule) -> str | Error:
         """ Copy source to destination as specified by the rule argument. 
         
-        On success, return a string of the copied directory, otherwise return a 3-element tuple with source, destination and message representing failure. """
+        On success, return a string of the copied directory, otherwise Error object. """
 
         if self.dry_run:
             print(f"{choice(all_colors)}[DRY RUN] Skipped copy of {rule.source} to {rule.destination} as per dry run flag{Colors.RESET}")
@@ -49,17 +49,19 @@ class BackupManager:
             return rule.destination
 
         try:
-            ret = copytree(
+            return copytree(
                 rule.source,
                 rule.destination,
                 ignore=ignore_patterns(*rule.ignore) if rule.ignore else None,
                 copy_function=_copy_impl,
                 dirs_exist_ok=True
             )
-
-            return ret
         except shutilError as exc:
-            return exc.args[0]
+            error_msg = f"{Colors.BRIGHT_RED}Error(s) occurred while copying files.{Colors.RESET}\n"
+            for src, dst, msg in exc.args[0]:
+                error_msg += f"{Colors.BRIGHT_RED}Failed to copy {src} to {dst}. Err: {msg}\n"
+            
+            return Error(error_msg)
 
     def copy_files(self) -> tuple[list[str], list[str]] | Error:
         """ Copy all files from source to destination as defined in rules.json 
@@ -71,12 +73,8 @@ class BackupManager:
         for rule in self.rules:
             ret = self._do_copy_op(rule)
 
-            if not isinstance(ret, str):
-                error_msg = f"{choice(all_colors)}Error(s) occurred while copying files.{Colors.RESET}\n"
-                for src, dst, msg in ret:
-                    error_msg += f"Failed to copy {choice(all_colors)}{src}{Colors.RESET} to {choice(all_colors)}{dst}{Colors.RESET}: {Colors.BRIGHT_RED}{msg}{Colors.RESET}\n"
-
-                return Error(error_msg)
+            if isinstance(ret, Error):
+                return ret
             
             copied.append(ret)
             source.append(rule.source)
