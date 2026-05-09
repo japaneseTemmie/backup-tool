@@ -1,5 +1,5 @@
-from backupmanager import BackupManager, Rule
-from rulesparser import RulesParser
+from backupmanager import BackupManager
+from rulesparser import RulesParser, Rule
 from error import Error
 from colors import Colors, all_colors
 
