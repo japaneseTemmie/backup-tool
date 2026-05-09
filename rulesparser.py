@@ -2,7 +2,7 @@ from constants import RULES_JSON_PATH
 from error import Error
 from colors import Colors
 
-from os.path import isfile, isdir
+from os.path import isfile, isdir, isabs
 from json import load, JSONDecodeError
 
 class Rule:
@@ -38,7 +38,9 @@ class RulesParser:
         if not destination:
             return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isinstance(destination, str):
-            return Error(f"{Colors.BRIGHT_RED}Destination is defined as {type(destination)} at iteration {iteration_count}, expected string{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Destination is defined as {destination.__class__.__name__} at iteration {iteration_count}, expected string{Colors.RESET}")
+        elif not isabs(destination):
+            return Error(f"{Colors.BRIGHT_RED}Destination path must be an absolute path. (begins from root to destination){Colors.RESET}")
         
         return destination
 
@@ -48,11 +50,13 @@ class RulesParser:
         Return source if checks are passed, otherwise `Error` object. """
         
         if not isinstance(source, str):
-            return Error(f"{Colors.BRIGHT_RED}Source is defined as {type(source)} at iteration {iteration_count}, expected string{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Source is defined as {source.__class__.__name__} at iteration {iteration_count}, expected string{Colors.RESET}")
         elif not source:
             return Error(f"{Colors.BRIGHT_RED}Source is not defined at iteration {iteration_count}{Colors.RESET}")
+        elif not isabs(source):
+            return Error(f"{Colors.BRIGHT_RED}Source path must be an absolute path at iteration {iteration_count}. (begins from root to source directory){Colors.RESET}")
         elif not isdir(source):
-            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {iteration_count} is not a directory")
+            return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {iteration_count} is not a directory{Colors.RESET}")
 
         return source
 
@@ -78,19 +82,12 @@ class RulesParser:
         
         if ignore_list is None:
             return []
-        elif not isinstance(ignore_list, list) or not all(isinstance(item, str) for item in ignore_list):
-            return Error(f"{Colors.BRIGHT_RED}Ignore attribute is defined as {type(ignore_list)} at iteration {iteration_count}, expected list of strings.{Colors.RESET}")
-    
+        elif not isinstance(ignore_list, list):
+            return Error(f"{Colors.BRIGHT_RED}Ignore attribute is defined as {ignore_list.__class__.__name__} at iteration {iteration_count}, expected list of strings.{Colors.RESET}")
+        elif not all(isinstance(item, str) for item in ignore_list):
+            return Error(f"{Colors.BRIGHT_RED}Ignore attribute is defined as a list, but atleast one item in it is not a string representing a glob pattern at iteration {iteration_count}{Colors.RESET}.")
+
         return ignore_list
-
-    def _check_ignore(self, ignore: list[str] | None, iteration_count: int) -> list[str] | Error:
-        """ Check the ignore argument, containing exclusion rules.
-        
-        Return a list of patterns to ignore or `Error` object if a check failed. """
-
-        ignore_files = self._check_ignore_list(ignore, iteration_count)        
-
-        return ignore_files
 
     def parse_rules(self, content: dict[str, list[dict]]) -> list[Rule] | Error:
         """ Parse rules.json's content and return `Rule` objects. """
@@ -112,7 +109,7 @@ class RulesParser:
             
             source, destination = result
 
-            result = self._check_ignore(ignore, i)
+            result = self._check_ignore_list(ignore, i)
             if isinstance(result, Error):
                 return result
             

@@ -35,9 +35,10 @@ Example `rules.json`:
 }
 ```
 
-The `source` is the directory to recurse through. Single files are not supported.
+The `source` is an absolute path pointing to the directory to recurse through. Single files are not supported.
 
-The `destination` is the directory to copy data to. **Any existing files with the same name at destination will be overwritten**.
+The `destination` is an absolute path pointing to the directory to copy data to. **Any existing files with the same name at destination will be overwritten**.
+    - Note: The last part of the path should contain the source folder's name! 
 
 These two properties **must** exist in every rule.
 
