@@ -40,7 +40,7 @@ class RulesParser:
         elif not isinstance(destination, str):
             return Error(f"{Colors.BRIGHT_RED}Destination is defined as {destination.__class__.__name__} at iteration {iteration_count}, expected string{Colors.RESET}")
         elif not isabs(destination):
-            return Error(f"{Colors.BRIGHT_RED}Destination path must be an absolute path. (begins from root to destination){Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Destination path defined at iteration {iteration_count} must be an absolute path. (begins from root to destination){Colors.RESET}")
         
         return destination
 
@@ -54,7 +54,7 @@ class RulesParser:
         elif not source:
             return Error(f"{Colors.BRIGHT_RED}Source is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isabs(source):
-            return Error(f"{Colors.BRIGHT_RED}Source path must be an absolute path at iteration {iteration_count}. (begins from root to source directory){Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}Source path defined at iteration {iteration_count} must be an absolute path. (begins from root to source directory){Colors.RESET}")
         elif not isdir(source):
             return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {iteration_count} is not a directory{Colors.RESET}")
 
