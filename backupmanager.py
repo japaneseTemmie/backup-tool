@@ -63,7 +63,7 @@ class BackupManager:
             
             return Error(error_msg)
         except OSError as exc: # handles copytree()'s makedirs() function call exceptions
-            return Error(f"An OS error occurred while copying {src} to {dst}. Err: {exc}")
+            return Error(f"An OS error occurred while copying {rule.source} to {rule.destination}. Err: {exc}")
 
     def copy_files(self) -> tuple[list[str], list[str]] | Error:
         """ Copy all files from source to destination as defined in rules.json 
