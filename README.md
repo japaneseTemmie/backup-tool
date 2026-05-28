@@ -39,7 +39,7 @@ The `source` is an absolute path pointing to the directory to recurse through. S
 
 The `destination` is an absolute path pointing to the directory to copy data to. **Any existing files with the same name at destination will be overwritten**.
   
-  - Note: The last part of the path should contain the source folder's name! 
+  - Note: The program copies the files directly to the last folder of the path. It does not create a new folder inside the given path.
 
 These two properties **must** exist in every rule.
 
