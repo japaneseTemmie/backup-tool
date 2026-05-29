@@ -51,7 +51,7 @@ Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected
 You can modify program behaviour with these options:
 
 ```
---no-hash-verification     Disables hash verification.
+--no-hash-verification     Disables hash verification. (Not recommended for real backups)
 --no-fs-sync               Disables filesystem sync after copy.
 --dry-run                  Runs the script but without actually copying files.
 ```
