@@ -22,8 +22,8 @@ class BackupManager:
         self.dry_run = dry_run
         self.rules = rules
 
-    def get_src_dst_string(self) -> str:
-        """ Return a string containing all the rules' changes and their exclusion. """
+    def get_changes(self) -> str:
+        """ Return a string containing all the rules' changes and their exclusions. """
         
         string = str()
 
@@ -41,7 +41,7 @@ class BackupManager:
     def _do_copy_op(self, rule: Rule) -> str | Error:
         """ Copy source to destination as specified by the rule argument. 
         
-        On success, return a string of the copied directory, otherwise Error object. """
+        On success, return a string of the copied directory, otherwise `Error` object. """
 
         if self.dry_run:
             print(f"{choice(all_colors)}[DRY RUN] Skipped copy of {rule.source} to {rule.destination} as per dry run flag{Colors.RESET}")
@@ -68,7 +68,7 @@ class BackupManager:
     def copy_files(self) -> tuple[list[str], list[str]] | Error:
         """ Copy all files from source to destination as defined in rules.json 
         
-        Return a tuple with a list of original and copied directories. """
+        Return a tuple with two lists containing source and copied directories' paths respectively. """
 
         source, copied = [], []
 
@@ -83,7 +83,7 @@ class BackupManager:
 
         return source, copied
     
-    def _get_files(self, path: str, ignore: list[str] | None=None, sort: bool=False) -> list[str] | Error:
+    def _recurse_directory(self, path: str, ignore: list[str] | None=None, sort: bool=False) -> list[str] | Error:
         """ Recurse into the given path and build a list of file paths. 
         
         Additionally, exclusions can be specified with the ignore argument. """
@@ -107,7 +107,7 @@ class BackupManager:
                 if entry.is_file():
                     files.append(entry.path)
                 elif entry.is_dir():
-                    other = self._get_files(entry.path, ignore, sort)
+                    other = self._recurse_directory(entry.path, ignore, sort)
                     if isinstance(other, Error):
                         return other
                     
@@ -115,11 +115,11 @@ class BackupManager:
 
         return files
 
-    def _read_buffers(self, fp: str) -> Generator[bytes, None, None]:
-        """ Return 8kb chunks of file at given file path. """
+    def _read_file_buffers(self, file_path: str) -> Generator[bytes, None, None]:
+        """ Yield 8KB chunks of file content for given file path. """
         
         buf_size = 8192
-        with open(fp, "rb") as f:
+        with open(file_path, "rb") as f:
             while True:
                 buf = f.read(buf_size)
                 if not buf:
@@ -127,16 +127,16 @@ class BackupManager:
 
                 yield buf
 
-    def _verify_files(self, src: str, dst: str) -> bool | Error:
-        """ Build and verify source and destination files' hashes. """
+    def _compare_file_hashes(self, src: str, dst: str) -> bool | Error:
+        """ Build and compare source and destination files' hashes. """
         
         src_hash = sha256()
         dst_hash = sha256()
 
         try:
-            for src_buf in self._read_buffers(src):
+            for src_buf in self._read_file_buffers(src):
                 src_hash.update(src_buf)
-            for dst_buf in self._read_buffers(dst):
+            for dst_buf in self._read_file_buffers(dst):
                 dst_hash.update(dst_buf)
 
             print(f"Verified hash of {choice(all_colors)}{src}{Colors.RESET} with {choice(all_colors)}{dst}{Colors.RESET}")
@@ -150,7 +150,7 @@ class BackupManager:
         
         for rule in self.rules:
             try:
-                src_files = self._get_files(rule.source, rule.ignore)
+                src_files = self._recurse_directory(rule.source, rule.ignore)
                 if isinstance(src_files, Error): return src_files
 
                 for src_file in src_files:
@@ -160,7 +160,7 @@ class BackupManager:
                     if not exists(dst_file):
                         return Error(f"{Colors.BRIGHT_RED}File {dst_file} not found at expected location.{Colors.RESET}")
 
-                    ret = self._verify_files(src_file, dst_file)
+                    ret = self._compare_file_hashes(src_file, dst_file)
                     if isinstance(ret, Error):
                         return ret
                     elif not ret:

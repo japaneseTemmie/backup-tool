@@ -31,7 +31,7 @@ def _ask(prompt: str) -> bool:
 def _show_changes(backup_manager: BackupManager) -> bool:
     """ Print the changes that will be applied to the user and wait for input. """
 
-    print(backup_manager.get_src_dst_string())
+    print(backup_manager.get_changes())
     return _ask(f"{choice(all_colors)}Continue? (y/n){Colors.RESET}: ")
 
 def _do_copy(backup_manager: BackupManager, dry_run: bool) -> bool:
