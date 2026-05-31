@@ -6,7 +6,7 @@ from typing import Generator
 from hashlib import sha256
 from fnmatch import fnmatch
 from os import scandir
-from os.path import isdir, relpath, join
+from os.path import isdir, exists, relpath, join
 from shutil import copy2, copytree, ignore_patterns, Error as shutilError
 from random import choice
 
@@ -156,6 +156,9 @@ class BackupManager:
                 for src_file in src_files:
                     relative = relpath(src_file, rule.source)
                     dst_file = join(rule.destination, relative)
+
+                    if not exists(dst_file):
+                        return Error(f"{Colors.BRIGHT_RED}File {dst_file} not found at expected location.{Colors.RESET}")
 
                     ret = self._verify_files(src_file, dst_file)
                     if isinstance(ret, Error):
