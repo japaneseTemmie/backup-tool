@@ -45,6 +45,8 @@ These two properties **must** exist in every rule.
 
 The `ignore` optional property defines what parts of the `source` directory to not copy to `destination`. It is defined as a list of strings and supports glob patterns.
 
+  - Note: Each entry in the `ignore` list is checked for every file/folder the program recurses through.
+
 Then, run `python3 backup.py`. Prefix the command with `sudo` for root-protected files.
 
 # CLI options
@@ -52,7 +54,7 @@ You can modify program behaviour with these options:
 
 ```
 --no-hash-verification     Disables hash verification. (Not recommended for real backups)
---no-fs-sync               Disables filesystem sync after copy.
+--no-fs-sync               Disables filesystem sync after copy. (Not recommended for real backups)
 --dry-run                  Runs the script but without actually copying files.
 ```
 
