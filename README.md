@@ -11,10 +11,11 @@ Does not modify original data in any way.
 - SHA-256 based hash verification after copy.
 - Simple exclusion system.
 - Easy-to-read JSON-based configuration file.
+- No external dependencies. Only the Python standard library :3
 
 # Usage
 
-To use the tool, ensure you have atleast Python 3.10. Then, simply put your 'rules' in a `rules.json` file. Which must follow the JSON structure.
+To use the tool, ensure you have atleast Python 3.10. Then, simply put your 'rules' in a `rules.json` file located in the same directory as the program. Which must follow the JSON structure.
 
 Example `rules.json`:
 
