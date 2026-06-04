@@ -164,6 +164,7 @@ class BackupManager:
                     if isinstance(ret, Error):
                         return ret
                     elif not ret:
+                        print(f"{Colors.BRIGHT_RED}Hash verification failed for file {src_file} with {dst_file}.{Colors.RESET}")
                         return False
             except OSError as exc:
                 return Error(f"{Colors.BRIGHT_RED}An error occurred while verifiying hashes: {exc}{Colors.RESET}")
