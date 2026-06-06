@@ -35,10 +35,10 @@ class RulesParser:
         
         Return destination if checks are passed, otherwise an `Error` object. """
 
-        if not destination:
-            return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {iteration_count}{Colors.RESET}")
-        elif not isinstance(destination, str):
+        if not isinstance(destination, str):
             return Error(f"{Colors.BRIGHT_RED}Destination is defined as {destination.__class__.__name__} at iteration {iteration_count}, expected string{Colors.RESET}")
+        elif not destination:
+            return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isabs(destination):
             return Error(f"{Colors.BRIGHT_RED}Destination path defined at iteration {iteration_count} must be an absolute path. (begins from root to destination){Colors.RESET}")
         
@@ -85,7 +85,7 @@ class RulesParser:
         elif not isinstance(ignore_list, list):
             return Error(f"{Colors.BRIGHT_RED}Ignore attribute is defined as {ignore_list.__class__.__name__} at iteration {iteration_count}, expected list of strings.{Colors.RESET}")
         elif not all(isinstance(item, str) for item in ignore_list):
-            return Error(f"{Colors.BRIGHT_RED}Ignore attribute is defined as a list, but atleast one item in it is not a string representing a glob pattern at iteration {iteration_count}{Colors.RESET}.")
+            return Error(f"{Colors.BRIGHT_RED}Ignore attribute is defined as a list at iteration {iteration_count}, but atleast one item in it is not a string representing a glob pattern.{Colors.RESET}")
 
         return ignore_list
 
@@ -103,13 +103,13 @@ class RulesParser:
             destination = rule.get("destination")
             ignore = rule.get("ignore")
 
-            result = self._check_source_and_destination(source, destination, i)
+            result = self._check_source_and_destination(source, destination, i+1)
             if isinstance(result, Error):
                 return result
             
             source, destination = result
 
-            result = self._check_ignore_list(ignore, i)
+            result = self._check_ignore_list(ignore, i+1)
             if isinstance(result, Error):
                 return result
             
