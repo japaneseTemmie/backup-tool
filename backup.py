@@ -139,7 +139,18 @@ def main(args: Namespace) -> None:
     print("done")
 
 if __name__ == "__main__":
-    argparser = ArgumentParser()
+    argparser = ArgumentParser(
+        prog="backup-tool",
+        description="A tool to make copies of specified directories, useful for backups.",
+        usage="""
+        Usage options for backup-tool:
+
+        --no-hash-verification Disables the post-copy hash verification between source and destination files.
+        --no-fs-sync Disables filesystem sync after copying files.
+        --dry-run Run the program without making any changes. Useful to test configurations.
+        """,
+        allow_abbrev=False
+    )
     argparser.add_argument("--no-hash-verification", action="store_true")
     argparser.add_argument("--no-fs-sync", action="store_true")
     argparser.add_argument("--dry-run", action="store_true")
