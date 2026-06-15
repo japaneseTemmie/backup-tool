@@ -2,7 +2,7 @@ from constants import RULES_JSON_PATH
 from error import Error
 from colors import Colors
 
-from os.path import isfile, isdir, isabs
+from os.path import isfile, isdir, exists, isabs
 from json import load, JSONDecodeError
 
 class Rule:
@@ -41,7 +41,9 @@ class RulesParser:
             return Error(f"{Colors.BRIGHT_RED}Destination is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isabs(destination):
             return Error(f"{Colors.BRIGHT_RED}Destination path defined at iteration {iteration_count} must be an absolute path. (begins from root to destination){Colors.RESET}")
-        
+        elif isdir(destination):
+            print(f"{Colors.BRIGHT_YELLOW}WARNING: Destination defined at iteration {iteration_count} '{destination}' already exists! Its contents matching file names from source directory will be overwritten!")
+
         return destination
 
     def _check_source(self, source: str, iteration_count: int) -> str | Error:
@@ -65,6 +67,9 @@ class RulesParser:
         
         Return a tuple with source and destination if checks are passed, otherwise an `Error` object. """
         
+        if source == destination:
+            return Error(f"{Colors.BRIGHT_RED}Source and destination defined at iteration {iteration_count} cannot be the same!{Colors.RESET}")
+
         source = self._check_source(source, iteration_count)
         if isinstance(source, Error):
             return source
@@ -113,8 +118,8 @@ class RulesParser:
             if isinstance(result, Error):
                 return result
             
-            ignore_files = result
+            ignore_list = result
                 
-            rule_objs.append(Rule(source, destination, ignore_files))
+            rule_objs.append(Rule(source, destination, ignore_list))
 
         return rule_objs

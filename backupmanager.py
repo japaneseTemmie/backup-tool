@@ -33,7 +33,7 @@ class BackupManager:
             string += "-> "
             string += f"{choice(all_colors)}{rule.destination} {Colors.RESET}"
             if rule.ignore:
-                string += f"{choice(all_colors)}(excluding {', '.join([excluded for excluded in rule.ignore])} files){Colors.RESET}"
+                string += f"{choice(all_colors)}(excluding {', '.join([excluded for excluded in rule.ignore])} files/folders){Colors.RESET}"
             string += "\n"
 
         return string
