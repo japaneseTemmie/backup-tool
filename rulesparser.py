@@ -2,7 +2,7 @@ from constants import RULES_JSON_PATH
 from error import Error
 from colors import Colors
 
-from os.path import isfile, isdir, exists, isabs
+from os.path import isfile, isdir, isabs
 from json import load, JSONDecodeError
 
 class Rule:
