@@ -1,3 +1,4 @@
+from constants import RULES_JSON_PATH
 from backupmanager import BackupManager
 from rulesparser import RulesParser, Rule
 from error import Error
@@ -99,10 +100,10 @@ def _do_hash_verification(backup_manager: BackupManager, no_hash_verification: b
         print(f"{Colors.BRIGHT_RED}Hashes don't match!{Colors.RESET}")
         return False
 
-def _get_rules() -> list[Rule] | None:
+def _get_rules(rules_file_path: str | None=None) -> list[Rule] | None:
     """ Get a list of rules provided by the `RulesParser` object. """
 
-    parser = RulesParser()
+    parser = RulesParser(rules_file_path or RULES_JSON_PATH)
     content = parser.get_file_contents()
 
     if isinstance(content, Error):
@@ -121,7 +122,7 @@ def main(args: Namespace) -> None:
     if args.dry_run:
         print(f"{choice(all_colors)}===DRY RUN==={Colors.RESET}")
 
-    rules = _get_rules()
+    rules = _get_rules(args.rules_file)
     if rules is None:
         sysexit(1)
 
@@ -147,13 +148,15 @@ if __name__ == "__main__":
 
         --no-hash-verification Disables the post-copy hash verification between source and destination files.
         --no-fs-sync Disables filesystem sync after copying files.
-        --dry-run Run the program without making any changes. Useful to test configurations.
+        --dry-run Runs the program without making any changes. Useful to test configurations.
+        --rules-file Specifies which file to use as the 'rules file'. The chosen file must be a JSON file following the example structure.
         """,
         allow_abbrev=False
     )
     argparser.add_argument("--no-hash-verification", action="store_true")
     argparser.add_argument("--no-fs-sync", action="store_true")
     argparser.add_argument("--dry-run", action="store_true")
+    argparser.add_argument("--rules-file")
     args = argparser.parse_args()
 
     main(args)
