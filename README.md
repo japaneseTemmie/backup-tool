@@ -57,7 +57,7 @@ You can modify program behaviour with these options:
 --no-hash-verification     Disables hash verification. (Not recommended for real backups)
 --no-fs-sync               Disables filesystem sync after copy. (Not recommended for real backups)
 --dry-run                  Runs the script but without actually copying files.
---rules-file               Specifies what file to use as the 'rules file'. The chosen JSON file must follow the example strucutre.
+--rules-file               Specifies what file to use as the 'rules file'. The chosen JSON file must follow the example structure.
 ```
 
 # Notes
