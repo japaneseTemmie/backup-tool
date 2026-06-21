@@ -107,11 +107,18 @@ class RulesParser:
     def parse_rules(self, content: dict[str, list[dict[str, Any]]]) -> list[Rule] | Error:
         """ Parse rules.json's content and return `Rule` objects. """
         
+        if not isinstance(content, dict):
+            return Error(f"{Colors.BRIGHT_RED}The rules file does not contain a valid toplevel structure! Must be a JSON object.{Colors.RESET}")
+        elif not content:
+            return Error(f"{Colors.BRIGHT_RED}The rules file contains an empty toplevel object.{Colors.RESET}")
+
         rules = content.get("rules")
         rule_objs = []
         
-        if not content or rules is None:
-            return Error("No rules found.")
+        if not isinstance(rules, list):
+            return Error(f"{Colors.BRIGHT_RED}The 'rules' field in the rules file toplevel object is not an array!{Colors.RESET}")
+        elif not rules:
+            return Error(f"{Colors.BRIGHT_RED}No rules found.{Colors.RESET}")
         
         for i, rule in enumerate(rules):
             source = rule.get("source")
