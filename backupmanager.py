@@ -1,3 +1,4 @@
+from constants import FILE_BUF_SIZE
 from error import Error
 from rulesparser import Rule
 from colors import Colors, all_colors
@@ -6,7 +7,7 @@ from typing import Generator
 from hashlib import sha256
 from fnmatch import fnmatch
 from os import scandir
-from os.path import isdir, exists, relpath, join
+from os.path import relpath, join
 from shutil import copy2, copytree, ignore_patterns, Error as shutilError
 from random import choice
 
@@ -88,37 +89,38 @@ class BackupManager:
         
         Additionally, exclusions can be specified with the ignore argument. """
         
-        if not isdir(path):
-            return Error(f"{Colors.BRIGHT_RED}Path {path} is not a directory{Colors.RESET}")
-        
         files = []
 
-        with scandir(path) as iterator:
-            if sort:
-                entries = list(iterator)
-                entries.sort(key=lambda e: e.name)
-            else:
-                entries = iterator
+        try:
+            with scandir(path) as iterator:
+                if sort:
+                    entries = list(iterator)
+                    entries.sort(key=lambda e: e.name)
+                else:
+                    entries = iterator
 
-            for entry in entries:
-                if ignore is not None and any(fnmatch(entry.name, pattern) for pattern in ignore):
-                    continue
-                
-                if entry.is_file():
-                    files.append(entry.path)
-                elif entry.is_dir():
-                    other = self._recurse_directory(entry.path, ignore, sort)
-                    if isinstance(other, Error):
-                        return other
+                for entry in entries:
+                    if ignore is not None and any(fnmatch(entry.name, pattern) for pattern in ignore):
+                        continue
                     
-                    files.extend(other)
+                    if entry.is_file():
+                        files.append(entry.path)
+                    elif entry.is_dir():
+                        other = self._recurse_directory(entry.path, ignore, sort)
+                        if isinstance(other, Error):
+                            return other
+                        
+                        files.extend(other)
+        except NotADirectoryError:
+            return Error(f"{Colors.BRIGHT_RED}Path {path} is not a directory!{Colors.RESET}")
+        except OSError as exc:
+            return Error(f"{Colors.BRIGHT_RED}An error occurred while recursing directory at {path}.\nErr: {exc}{Colors.RESET}")
 
         return files
 
-    def _read_file_buffers(self, file_path: str) -> Generator[bytes, None, None]:
-        """ Yield 8KB chunks of file content for given file path. """
-        
-        buf_size = 8192
+    def _read_file_buffers(self, file_path: str, buf_size: int) -> Generator[bytes, None, None]:
+        """ Yield chunks of arbitrary size of file content for the given file path. """
+
         with open(file_path, "rb") as f:
             while True:
                 buf = f.read(buf_size)
@@ -134,14 +136,16 @@ class BackupManager:
         dst_hash = sha256()
 
         try:
-            for src_buf in self._read_file_buffers(src):
+            print(f"Verifying hash of {choice(all_colors)}{src}{Colors.RESET} with {choice(all_colors)}{dst}{Colors.RESET}")
+
+            for src_buf in self._read_file_buffers(src, FILE_BUF_SIZE):
                 src_hash.update(src_buf)
-            for dst_buf in self._read_file_buffers(dst):
+            for dst_buf in self._read_file_buffers(dst, FILE_BUF_SIZE):
                 dst_hash.update(dst_buf)
 
-            print(f"Verified hash of {choice(all_colors)}{src}{Colors.RESET} with {choice(all_colors)}{dst}{Colors.RESET}")
-
             return src_hash.hexdigest() == dst_hash.hexdigest()
+        except FileNotFoundError:
+            return Error(f"{Colors.BRIGHT_RED}Required files were not found during hash verification of file {src} with {dst}{Colors.RESET}")
         except OSError as exc:
             return Error(f"{Colors.BRIGHT_RED}An error occurred while reading file buffers: {exc}{Colors.RESET}")
 
@@ -151,14 +155,12 @@ class BackupManager:
         for rule in self.rules:
             try:
                 src_files = self._recurse_directory(rule.source, rule.ignore)
-                if isinstance(src_files, Error): return src_files
+                if isinstance(src_files, Error):
+                    return src_files
 
                 for src_file in src_files:
                     relative = relpath(src_file, rule.source)
                     dst_file = join(rule.destination, relative)
-
-                    if not exists(dst_file):
-                        return Error(f"{Colors.BRIGHT_RED}File {dst_file} not found at expected location.{Colors.RESET}")
 
                     ret = self._compare_file_hashes(src_file, dst_file)
                     if isinstance(ret, Error):

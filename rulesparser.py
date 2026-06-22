@@ -1,7 +1,7 @@
 from error import Error
 from colors import Colors
 
-from os.path import isfile, isdir, isabs, normpath, abspath
+from os.path import isdir, isabs, normpath, abspath
 from json import load, JSONDecodeError
 from typing import Any
 
