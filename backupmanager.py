@@ -7,7 +7,7 @@ from typing import Generator
 from hashlib import sha256
 from fnmatch import fnmatch
 from os import scandir
-from os.path import relpath, join
+from os.path import relpath, basename, join
 from shutil import copy2, copytree, ignore_patterns, Error as shutilError
 from random import choice
 
@@ -85,38 +85,41 @@ class BackupManager:
         return source, copied
     
     def _recurse_directory(self, path: str, ignore: list[str] | None=None, sort: bool=False) -> list[str] | Error:
-        """ Recurse into the given path and build a list of file paths. 
+        """ Recurse into the given directory path and build a list of paths for all inner files. 
         
-        Additionally, exclusions can be specified with the ignore argument. """
+        Additionally, exclusions can be specified as glob patterns with the ignore argument. """
         
-        files = []
-
-        try:
-            with scandir(path) as iterator:
-                if sort:
-                    entries = list(iterator)
-                    entries.sort(key=lambda e: e.name)
-                else:
-                    entries = iterator
-
-                for entry in entries:
-                    if ignore is not None and any(fnmatch(entry.name, pattern) for pattern in ignore):
-                        continue
-                    
-                    if entry.is_file():
-                        files.append(entry.path)
-                    elif entry.is_dir():
-                        other = self._recurse_directory(entry.path, ignore, sort)
-                        if isinstance(other, Error):
-                            return other
+        def _traverse_dir(current_path: str) -> list[str] | Error:
+            """ Traverse into the directory and collect all file paths inside of it. This is recursive. """
+            
+            files = []
+        
+            try:
+                with scandir(current_path) as iterator:
+                    for entry in iterator:
+                        if ignore is not None and any(fnmatch(entry.name, pattern) for pattern in ignore):
+                            continue
                         
-                        files.extend(other)
-        except NotADirectoryError:
-            return Error(f"{Colors.BRIGHT_RED}Path {path} is not a directory!{Colors.RESET}")
-        except OSError as exc:
-            return Error(f"{Colors.BRIGHT_RED}An error occurred while recursing directory at {path}.\nErr: {exc}{Colors.RESET}")
+                        if entry.is_file():
+                            files.append(entry.path)
+                        elif entry.is_dir():
+                            other = _traverse_dir(entry.path)
+                            if isinstance(other, Error):
+                                return other
+                            
+                            files.extend(other)
+            except NotADirectoryError:
+                return Error(f"{Colors.BRIGHT_RED}Path {current_path} is not a directory!{Colors.RESET}")
+            except OSError as exc:
+                return Error(f"{Colors.BRIGHT_RED}An error occurred while recursing directory at {current_path}.\nErr: {exc}{Colors.RESET}")
 
-        return files
+            return files
+
+        ret = _traverse_dir(path)
+        if isinstance(ret, Error):
+            return ret
+        
+        return ret if not sort else sorted(ret, key=basename)
 
     def _read_file_buffers(self, file_path: str, buf_size: int) -> Generator[bytes, None, None]:
         """ Yield chunks of arbitrary size of file content for the given file path. """
