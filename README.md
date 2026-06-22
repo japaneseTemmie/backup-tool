@@ -15,7 +15,8 @@ Does not modify original data in any way.
 
 # Usage
 
-To use the tool, ensure you have atleast Python 3.10. Then, simply put your 'rules' in a `rules.json` file located in the same directory as the program. Which must follow the JSON structure.
+To use the tool, ensure you have atleast Python 3.10.
+Then, simply put your 'rules' in a `rules.json` file located in the same directory as the program. Which must follow the JSON structure.
 
 Example `rules.json`:
 
@@ -35,6 +36,10 @@ Example `rules.json`:
     ]
 }
 ```
+
+The structure must include a toplevel Object, rules will be stored as an array of Objects in a key named "**rules**".
+
+Each rule contains different properties:
 
 The `source` is an absolute path pointing to the directory to recurse through. Single files are not supported.
 
@@ -64,4 +69,4 @@ You can modify program behaviour with these options:
 
 - If copying to an external drive, ensure the connection to the drive is stable.
 
-- Symlinked files are handled by _only copying the file contents and metadata_ to the destination. 
+- Symlinked files are handled by only copying the _file contents and metadata_ to the destination file.
