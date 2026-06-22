@@ -59,11 +59,11 @@ class BackupManager:
         except shutilError as exc:
             error_msg = f"{Colors.BRIGHT_RED}Error(s) occurred while copying files.{Colors.RESET}\n"
             for src, dst, msg in exc.args[0]:
-                error_msg += f"{Colors.BRIGHT_RED}Failed to copy {src} to {dst}. Err: {msg}\n"
+                error_msg += f"{Colors.BRIGHT_RED}Failed to copy {src} to {dst}. Err: {msg}{Colors.RESET}\n"
             
             return Error(error_msg)
         except OSError as exc: # handles copytree()'s makedirs() function call exceptions
-            return Error(f"An OS error occurred while copying {rule.source} to {rule.destination}. Err: {exc}")
+            return Error(f"{Colors.BRIGHT_RED}An OS error occurred while copying {rule.source} to {rule.destination}. Err: {exc}{Colors.RESET}")
 
     def copy_files(self) -> tuple[list[str], list[str]] | Error:
         """ Copy all files from source to destination as defined in rules.json 
@@ -89,7 +89,7 @@ class BackupManager:
         Additionally, exclusions can be specified with the ignore argument. """
         
         if not isdir(path):
-            return Error(f"Path {path} is not a directory")
+            return Error(f"{Colors.BRIGHT_RED}Path {path} is not a directory{Colors.RESET}")
         
         files = []
 

@@ -25,12 +25,11 @@ class RulesParser:
         
         Return file contents on success, otherwise an `Error` object. """
         
-        if not isfile(self.rules_file_path):
-            return Error(f"{Colors.BRIGHT_RED}'{self.rules_file_path}' rules file does not exist!{Colors.RESET}")
-        
         try:
             with open(self.rules_file_path) as f:
                 return load(f)
+        except FileNotFoundError:
+            return Error(f"{Colors.BRIGHT_RED}'{self.rules_file_path}' rules file does not exist!{Colors.RESET}")
         except OSError as e:
             return Error(f"{Colors.BRIGHT_RED}Unable to open '{self.rules_file_path}' rules file due to error:\n{e}{Colors.RESET}")
         except JSONDecodeError as e:
@@ -48,7 +47,7 @@ class RulesParser:
         elif not isabs(destination):
             return Error(f"{Colors.BRIGHT_RED}Destination path defined at iteration {iteration_count} must be an absolute path. (begins from root to destination){Colors.RESET}")
         elif isdir(destination):
-            print(f"{Colors.BRIGHT_YELLOW}WARNING: Destination defined at iteration {iteration_count} '{destination}' already exists! Its contents matching file names from source directory will be overwritten!")
+            print(f"{Colors.BRIGHT_YELLOW}WARNING: Destination defined at iteration {iteration_count} '{destination}' already exists! Its contents matching file names from source directory will be overwritten!{Colors.RESET}")
 
         return destination
 
