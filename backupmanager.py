@@ -157,7 +157,7 @@ class BackupManager:
         
         for rule in self.rules:
             try:
-                dst_files, src_files = self._recurse_directory(rule.destination), self._recurse_directory(rule.source)
+                dst_files, src_files = self._recurse_directory(rule.destination, rule.ignore), self._recurse_directory(rule.source, rule.ignore)
                 if isinstance(src_files, Error):
                     return src_files
                 elif isinstance(dst_files, Error):
