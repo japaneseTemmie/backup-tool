@@ -157,13 +157,19 @@ class BackupManager:
         
         for rule in self.rules:
             try:
-                src_files = self._recurse_directory(rule.source, rule.ignore)
+                dst_files, src_files = self._recurse_directory(rule.destination), self._recurse_directory(rule.source)
                 if isinstance(src_files, Error):
                     return src_files
+                elif isinstance(dst_files, Error):
+                    return dst_files
 
-                for src_file in src_files:
-                    relative = relpath(src_file, rule.source)
-                    dst_file = join(rule.destination, relative)
+                src_files = set(src_files)
+                for dst_file in dst_files:
+                    relative = relpath(dst_file, rule.destination)
+                    src_file = join(rule.source, relative)
+
+                    if src_file not in src_files:
+                        continue # we did not copy this file
 
                     ret = self._compare_file_hashes(src_file, dst_file)
                     if isinstance(ret, Error):
