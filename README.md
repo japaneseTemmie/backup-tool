@@ -62,6 +62,7 @@ You can modify program behaviour with these options:
 --no-hash-verification     Disables hash verification. (Not recommended for real backups)
 --no-fs-sync               Disables filesystem sync after copy. (Not recommended for real backups)
 --dry-run                  Runs the script but without actually copying files.
+--no-follow-symlinks       Copies symlinks as symlinks to the destination. Not recommended for backups to external disks.
 --rules-file               Specifies what file to use as the 'rules file'. The chosen JSON file must follow the example structure.
 ```
 
@@ -69,4 +70,4 @@ You can modify program behaviour with these options:
 
 - If copying to an external drive, ensure the connection to the drive is stable.
 
-- Symlinked files are handled by only copying the _file contents and metadata_ to the destination file.
+- Symlinked files are handled by only copying the _file contents and metadata_ to the destination file. Unless otherwise specified.

@@ -126,7 +126,7 @@ def main(args: Namespace) -> None:
     if rules is None:
         sysexit(1)
 
-    backup_manager = BackupManager(args.dry_run, rules)
+    backup_manager = BackupManager(args.dry_run, args.no_follow_symlinks, rules)
 
     if not _show_changes(backup_manager):
         sysexit(0)
@@ -149,6 +149,7 @@ if __name__ == "__main__":
         --no-hash-verification Disables the post-copy hash verification between source and destination files.
         --no-fs-sync Disables filesystem sync after copying files.
         --dry-run Runs the program without making any changes. Useful to test configurations.
+        --no-follow-symlinks Copies symlinks as symlinks to the destination. This is not recommended for backups to external disks.
         --rules-file Specifies which file to use as the 'rules file'. The chosen file must be a JSON file following the example structure.
         """,
         allow_abbrev=False
@@ -156,6 +157,7 @@ if __name__ == "__main__":
     argparser.add_argument("--no-hash-verification", action="store_true")
     argparser.add_argument("--no-fs-sync", action="store_true")
     argparser.add_argument("--dry-run", action="store_true")
+    argparser.add_argument("--no-follow-symlinks", action="store_true")
     argparser.add_argument("--rules-file")
     args = argparser.parse_args()
 

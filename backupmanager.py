@@ -19,8 +19,9 @@ def _copy_impl(src: str, dst: str) -> str:
 class BackupManager:
     """ Backup manager object to handle core functions. """
 
-    def __init__(self, dry_run: bool, rules: list[Rule]) -> None:
+    def __init__(self, dry_run: bool, no_follow_symlinks: bool, rules: list[Rule]) -> None:
         self.dry_run = dry_run
+        self.no_follow_symlinks = no_follow_symlinks
         self.rules = rules
 
     def get_changes(self) -> str:
@@ -53,6 +54,7 @@ class BackupManager:
             return copytree(
                 rule.source,
                 rule.destination,
+                symlinks=self.no_follow_symlinks, # 'symlinks' argument is basically the same as 'follow_symlinks'
                 ignore=ignore_patterns(*rule.ignore) if rule.ignore else None,
                 copy_function=_copy_impl,
                 dirs_exist_ok=True
@@ -63,7 +65,7 @@ class BackupManager:
                 error_msg += f"{Colors.BRIGHT_RED}Failed to copy {src} to {dst}. Err: {msg}{Colors.RESET}\n"
             
             return Error(error_msg)
-        except OSError as exc: # handles copytree()'s makedirs() function call exceptions
+        except OSError as exc: # handles copytree()'s makedirs() function call exception
             return Error(f"{Colors.BRIGHT_RED}An OS error occurred while copying {rule.source} to {rule.destination}. Err: {exc}{Colors.RESET}")
 
     def copy_files(self) -> tuple[list[str], list[str]] | Error:
