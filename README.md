@@ -63,6 +63,7 @@ You can modify program behaviour with these options:
 --no-fs-sync               Disables filesystem sync after copy. (Not recommended for real backups)
 --dry-run                  Runs the script but without actually copying files.
 --no-follow-symlinks       Copies symlinks as symlinks to the destination. Not recommended for backups to external disks.
+--quiet                    Hides noisy output.
 --rules-file               Specifies what file to use as the 'rules file'. The chosen JSON file must follow the example structure.
 ```
 

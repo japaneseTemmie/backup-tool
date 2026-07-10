@@ -1,5 +1,6 @@
 from error import Error
 from colors import Colors
+from logutils import log
 
 from os.path import isdir, isabs, normpath, abspath
 from json import load, JSONDecodeError
@@ -47,7 +48,7 @@ class RulesParser:
         elif not isabs(destination):
             return Error(f"{Colors.BRIGHT_RED}Destination path defined at iteration {iteration_count} must be an absolute path. (begins from root to destination){Colors.RESET}")
         elif isdir(destination):
-            print(f"{Colors.BRIGHT_YELLOW}WARNING: Destination defined at iteration {iteration_count} '{destination}' already exists! Its contents matching file names from source directory will be overwritten!{Colors.RESET}")
+            log(f"{Colors.BRIGHT_YELLOW}WARNING: Destination defined at iteration {iteration_count} '{destination}' already exists! Its contents matching file names from source directory will be overwritten!{Colors.RESET}")
 
         return destination
 
