@@ -72,7 +72,7 @@ def _do_sync(no_fs_sync: bool, dry_run: bool, quiet: bool) -> bool:
             log(f"Syncing filesystem failed. Cannot proceed with hash verification. Your copy may not be fully written.\nErr: {e}")
             return False
     else:
-        log(f"Unable to sync filesystem. OS might not provide support for it, and hash verification might fail due to unwritten buffers.", quiet)
+        log(f"Unable to sync filesystem. OS might not provide support for it, and hash verification might fail due to unwritten buffers.")
 
     return True
 
@@ -98,7 +98,7 @@ def _do_hash_verification(backup_manager: BackupManager, no_hash_verification: b
         log(f"{Colors.BRIGHT_GREEN}Hashes match!{Colors.RESET}", quiet)
         return True
     else:
-        log(f"{Colors.BRIGHT_RED}Hashes don't match!{Colors.RESET}", quiet)
+        log(f"{Colors.BRIGHT_RED}Hashes don't match!{Colors.RESET}")
         return False
 
 def _get_rules(rules_file_path: str | None=None) -> list[Rule] | None:
