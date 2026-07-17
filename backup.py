@@ -18,6 +18,8 @@ from time import sleep
 from random import choice
 
 def _ask(prompt: str) -> bool:
+    """ Wait for input on the given prompt and return a boolean value based on the entered buffer. (True for (y, yes) and False for (n, no)) """
+
     while True:
         answer = input(prompt).lower().strip()
 
