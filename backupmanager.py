@@ -45,7 +45,7 @@ class BackupManager:
     def _do_copy_op(self, rule: Rule) -> str | Error:
         """ Copy source to destination as specified by the rule argument. 
         
-        On success, return a string of the copied directory, otherwise `Error` object. """
+        On success, return a path string of the copied directory, otherwise `Error` object. """
 
         if self.dry_run:
             log(f"{choice(all_colors)}[DRY RUN] Skipped copy of {rule.source} to {rule.destination} as per dry run flag{Colors.RESET}", self.quiet)
@@ -56,7 +56,7 @@ class BackupManager:
             return copytree(
                 rule.source,
                 rule.destination,
-                symlinks=self.no_follow_symlinks, # 'symlinks' argument is basically the same as 'follow_symlinks'
+                symlinks=self.no_follow_symlinks, # 'symlinks' argument is basically the same as 'follow_symlinks', except that TRUE will NOT follow symlinks, but FALSE will for some reason
                 ignore=ignore_patterns(*rule.ignore) if rule.ignore else None,
                 copy_function=lambda src, dst: _copy_impl(src, dst, self.quiet),
                 dirs_exist_ok=True
@@ -66,12 +66,12 @@ class BackupManager:
             for src, dst, msg in exc.args[0]:
                 error_msg += f"{Colors.BRIGHT_RED}Failed to copy {src} to {dst}. Err: {msg}{Colors.RESET}\n"
             
-            return Error(error_msg)
-        except OSError as exc: # handles copytree()'s makedirs() function call exceptions
-            return Error(f"{Colors.BRIGHT_RED}An error occurred while copying {rule.source} to {rule.destination}. Err: {exc}{Colors.RESET}")
+            return Error(error_msg, exc)
+        except OSError as exc: # handles copytree()'s makedirs() and scandir() function calls exceptions
+            return Error(f"{Colors.BRIGHT_RED}An error occurred while copying {rule.source} to {rule.destination}.\nErr: {exc}{Colors.RESET}", exc)
 
     def copy_files(self) -> tuple[list[str], list[str]] | Error:
-        """ Copy all files from source to destination as defined in rules.json 
+        """ Copy all files from source to destination as defined in the rules file. 
         
         Return a tuple with two lists containing source and copied directories' paths respectively. """
 
@@ -114,14 +114,14 @@ class BackupManager:
                                 return other
                             
                             files.extend(other)
-            except FileNotFoundError:
-                return Error(f"{Colors.BRIGHT_RED}Path {current_path} does not exist!{Colors.RESET}")
-            except NotADirectoryError:
-                return Error(f"{Colors.BRIGHT_RED}Path {current_path} is not a directory!{Colors.RESET}")
-            except PermissionError:
-                return Error(f"{Colors.BRIGHT_RED}Unable to open directory {current_path} due to permission error.{Colors.RESET}")
+            except FileNotFoundError as exc:
+                return Error(f"{Colors.BRIGHT_RED}Path {current_path} does not exist!{Colors.RESET}", exc)
+            except NotADirectoryError as exc:
+                return Error(f"{Colors.BRIGHT_RED}Path {current_path} is not a directory!{Colors.RESET}", exc)
+            except PermissionError as exc:
+                return Error(f"{Colors.BRIGHT_RED}Unable to open directory {current_path} due to permission error.{Colors.RESET}", exc)
             except OSError as exc:
-                return Error(f"{Colors.BRIGHT_RED}An error occurred while recursing directory at {current_path}.\nErr: {exc}{Colors.RESET}")
+                return Error(f"{Colors.BRIGHT_RED}An error occurred while recursing directory at {current_path}.\nErr: {exc}{Colors.RESET}", exc)
 
             return files
 
@@ -157,12 +157,12 @@ class BackupManager:
                 dst_hash.update(dst_buf)
 
             return src_hash.hexdigest() == dst_hash.hexdigest()
-        except FileNotFoundError:
-            return Error(f"{Colors.BRIGHT_RED}Required files were not found during hash verification of file {src} with {dst}{Colors.RESET}")
-        except PermissionError:
-            return Error(f"{Colors.BRIGHT_RED}Unable to open required files for hash verification of file {src} with {dst}{Colors.RESET}")
+        except FileNotFoundError as exc:
+            return Error(f"{Colors.BRIGHT_RED}Required files were not found during hash verification of file {src} with {dst}{Colors.RESET}", exc)
+        except PermissionError as exc:
+            return Error(f"{Colors.BRIGHT_RED}Unable to open required files for hash verification of file {src} with {dst}{Colors.RESET}", exc)
         except OSError as exc:
-            return Error(f"{Colors.BRIGHT_RED}An error occurred while reading file buffers: {exc}{Colors.RESET}")
+            return Error(f"{Colors.BRIGHT_RED}An error occurred while reading file buffers: {exc}{Colors.RESET}", exc)
 
     def _do_hash_verification(self) -> bool | Error:
         """ Compute and compare SHA-256 hashes of all provided rules' source and destination files. """

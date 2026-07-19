@@ -22,19 +22,19 @@ class RulesParser:
             self.rules_file_path = rules_file_path
 
     def get_file_contents(self) -> dict[str, list[dict[str, Any]]] | Error:
-        """ Try to open the rules.json file. 
+        """ Try to open the rules file. 
         
         Return file contents on success, otherwise an `Error` object. """
         
         try:
             with open(self.rules_file_path) as f:
                 return load(f)
-        except FileNotFoundError:
-            return Error(f"{Colors.BRIGHT_RED}'{self.rules_file_path}' rules file does not exist!{Colors.RESET}")
-        except OSError as e:
-            return Error(f"{Colors.BRIGHT_RED}Unable to open '{self.rules_file_path}' rules file due to error:\n{e}{Colors.RESET}")
-        except JSONDecodeError as e:
-            return Error(f"{Colors.BRIGHT_RED}Unable to parse '{self.rules_file_path}' JSON rules file due to error:\n{e}{Colors.RESET}")
+        except FileNotFoundError as exc:
+            return Error(f"{Colors.BRIGHT_RED}'{self.rules_file_path}' rules file does not exist!{Colors.RESET}", exc)
+        except OSError as exc:
+            return Error(f"{Colors.BRIGHT_RED}Unable to open '{self.rules_file_path}' rules file due to error:\n{exc}{Colors.RESET}", exc)
+        except JSONDecodeError as exc:
+            return Error(f"{Colors.BRIGHT_RED}Unable to parse '{self.rules_file_path}' JSON rules file due to error:\n{exc}{Colors.RESET}", exc)
     
     def _check_destination(self, destination: str, iteration_count: int) -> str | Error:
         """ Check if destination is valid. 
@@ -63,7 +63,7 @@ class RulesParser:
             return Error(f"{Colors.BRIGHT_RED}Source is not defined at iteration {iteration_count}{Colors.RESET}")
         elif not isabs(source):
             return Error(f"{Colors.BRIGHT_RED}Source path defined at iteration {iteration_count} must be an absolute path. (begins from root to source directory){Colors.RESET}")
-        elif not isdir(source):
+        elif not isdir(source): # First check to bail out early, but we do not take the source's existence for granted after this check
             return Error(f"{Colors.BRIGHT_RED}Source defined at iteration {iteration_count} is not a directory{Colors.RESET}")
 
         return source
@@ -71,7 +71,7 @@ class RulesParser:
     def _check_source_and_destination(self, source: str, destination: str, iteration_count: int) -> tuple[str, str] | Error:
         """ Check both source and destination. This also normalizes the source and destination paths.
         
-        Return a tuple with source and destination if checks are passed, otherwise an `Error` object. """
+        Return a tuple with source and destination if all checks are passed, otherwise an `Error` object. """
         
         source, destination = normpath(source), normpath(destination)
 

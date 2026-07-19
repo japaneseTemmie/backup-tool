@@ -33,7 +33,7 @@ def _ask(prompt: str) -> bool:
             return False
 
 def _show_changes(backup_manager: BackupManager) -> bool:
-    """ Print the changes that will be applied to the user and wait for input. """
+    """ Print the changes that will be applied to the disks and wait for input from the user. """
 
     log(backup_manager.get_changes())
     return _ask(f"{choice(all_colors)}Continue? (y/n){Colors.RESET}: ")
