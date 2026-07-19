@@ -165,32 +165,29 @@ class BackupManager:
             return Error(f"{Colors.BRIGHT_RED}An error occurred while reading file buffers: {exc}{Colors.RESET}")
 
     def _do_hash_verification(self) -> bool | Error:
-        """ Compute and compare source and destination file SHA-256 hashes of all provided rules. """
+        """ Compute and compare SHA-256 hashes of all provided rules' source and destination files. """
         
         for rule in self.rules:
-            try:
-                dst_files, src_files = self._recurse_directory(rule.destination, rule.ignore), self._recurse_directory(rule.source, rule.ignore)
-                if isinstance(src_files, Error):
-                    return src_files
-                elif isinstance(dst_files, Error):
-                    return dst_files
+            dst_files, src_files = self._recurse_directory(rule.destination, rule.ignore), self._recurse_directory(rule.source, rule.ignore)
+            if isinstance(src_files, Error):
+                return src_files
+            elif isinstance(dst_files, Error):
+                return dst_files
 
-                src_files = set(src_files)
-                for dst_file in dst_files:
-                    relative = relpath(dst_file, rule.destination)
-                    src_file = join(rule.source, relative)
+            src_files = set(src_files)
+            for dst_file in dst_files:
+                relative = relpath(dst_file, rule.destination)
+                src_file = join(rule.source, relative)
 
-                    if src_file not in src_files:
-                        continue # we did not copy this file
+                if src_file not in src_files:
+                    continue # we did not copy this file
 
-                    ret = self._compare_file_hashes(src_file, dst_file)
-                    if isinstance(ret, Error):
-                        return ret
-                    elif not ret:
-                        log(f"{Colors.BRIGHT_RED}Hash verification failed for file {src_file} with {dst_file}.{Colors.RESET}")
-                        return False
-            except OSError as exc:
-                return Error(f"{Colors.BRIGHT_RED}An error occurred while verifiying hashes: {exc}{Colors.RESET}")
+                ret = self._compare_file_hashes(src_file, dst_file)
+                if isinstance(ret, Error):
+                    return ret
+                elif not ret:
+                    log(f"{Colors.BRIGHT_RED}Hash verification failed for file {src_file} with {dst_file}.{Colors.RESET}")
+                    return False
 
         return True
 
